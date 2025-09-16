@@ -12,6 +12,8 @@ CREATE TABLE sub_orders (
    type_insurance VARCHAR(255),            -- Вид страхования
    premium_amount VARCHAR(255),   -- Размер премии
    manager_email VARCHAR(255),             -- Электронная почта менеджера
+   create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,   -- Дата создания, автоматически заполняется
+   update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL ON UPDATE CURRENT_TIMESTAMP,   -- Дата обновления, автоматически заполняется
    FOREIGN KEY (external_system_code) REFERENCES client_systems(external_system_code),-- Связь с системой клиента
    FOREIGN KEY (order_id) REFERENCES orders(order_id) -- Связь с айди заказа
 );
