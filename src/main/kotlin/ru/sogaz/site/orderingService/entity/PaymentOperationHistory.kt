@@ -17,23 +17,18 @@ import java.time.Instant
 @Table(name = "payment_operation_history")
 @EntityListeners(AuditingEntityListener::class)
 data class PaymentOperationHistory(
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     val id: Long? = null,
-
     @Column(name = "action")
     val action: Long? = null,
-
     @Column(name = "action_date")
     val actionDate: Instant? = null,
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "action_author_id", referencedColumnName = "external_system_code")
     val actionAuthor: ClientSystem? = null,
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", referencedColumnName = "order_id")
-    val order: Order? = null
+    val order: Order? = null,
 )

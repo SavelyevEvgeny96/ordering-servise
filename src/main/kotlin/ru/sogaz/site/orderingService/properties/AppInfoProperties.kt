@@ -4,7 +4,6 @@ import jakarta.annotation.PostConstruct
 import org.springframework.boot.context.properties.ConfigurationProperties
 import ru.sogaz.site.orderingService.loggerFor
 
-
 /**
  * Репозиторий информации о приложении.
  */
@@ -30,4 +29,3 @@ class AppInfoProperties {
         logger.info("java.version = $javaVersion")
     }
 }
-
