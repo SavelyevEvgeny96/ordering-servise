@@ -1,5 +1,5 @@
 CREATE TABLE order_status (
-    state_id BIGSERIAL PRIMARY KEY,  -- Автоинкрементируемый ID
+    id BIGSERIAL PRIMARY KEY,  -- Автоинкрементируемый ID
     state_id VARCHAR(50) UNIQUE ,    -- Код статуса
     state_name VARCHAR(255) NOT NULL -- Наименование статуса
 

@@ -6,16 +6,13 @@ import io.swagger.v3.oas.models.security.SecurityRequirement
 import io.swagger.v3.oas.models.security.SecurityScheme
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import ru.sogaz.site.orderingService.properties.AppInfoProperties
 
 private const val SCHEMA = "bearer"
 private const val SECURITY_SCHEME_NAME = "bearerAuth"
 private const val BEARER_FORMAT = "JWT"
 
 @Configuration
-open class SwaggerConfig(
-    private val appInfo: AppInfoProperties,
-) {
+open class SwaggerConfig{
     @Bean
     open fun customOpenAPI(): OpenAPI =
         OpenAPI().apply {

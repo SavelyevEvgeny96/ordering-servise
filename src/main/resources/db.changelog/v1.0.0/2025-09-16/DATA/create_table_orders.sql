@@ -1,7 +1,7 @@
-
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- Создание таблицы заказов
 CREATE TABLE orders (
-    order_id BINARY(16) PRIMARY KEY,                -- GUID ID заказа
+    order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),                -- GUID ID заказа
     recipient_user_gd_id VARCHAR(255),              -- Идентификатор золотой карточки страхователя
     key_card VARCHAR(255),                          -- Ключ привязки карты (для рекуррентных платежей)
     save_card VARCHAR(255),                         -- Признак необходимости сохранения данных карты
@@ -13,6 +13,5 @@ CREATE TABLE orders (
     recipient_phone VARCHAR(255) NOT NULL,          -- Мобильный телефон страхователя
     recipient_user_id VARCHAR(255),                 -- Идентификатор личного кабинета страхователя
     create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,   -- Дата создания, автоматически заполняется
-    update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL ON UPDATE CURRENT_TIMESTAMP,   -- Дата обновления, автоматически заполняется
-    CONSTRAINT fk_orders_status FOREIGN KEY (state_id)
-        REFERENCES order_status(state_id)           -- Связь со статусом заказа
+    update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,   -- Дата обновления, автоматически заполняется
+    FOREIGN KEY (state_id)REFERENCES order_status(state_id) )          -- Связь со статусом заказа

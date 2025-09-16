@@ -9,6 +9,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import org.hibernate.annotations.UuidGenerator
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
@@ -20,8 +21,9 @@ import java.util.UUID
 @EntityListeners(AuditingEntityListener::class)
 data class Order(
     @Id
-    @GeneratedValue(generator = "uuid2")
-    @Column(name = "order_id", updatable = false, nullable = false, columnDefinition = "BINARY(16)")
+    @GeneratedValue
+    @UuidGenerator
+    @Column(name = "order_id")
     val id: UUID? = null,
     @Column(name = "recipient_user_gd_id")
     val recipientUserGdId: String? = null,

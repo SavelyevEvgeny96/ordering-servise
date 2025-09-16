@@ -10,13 +10,12 @@ import ru.sogaz.site.orderingService.loggerFor
 @ConfigurationProperties(prefix = "app.info")
 class AppInfoProperties {
     private val logger = loggerFor(javaClass)
-
-    private lateinit var applicationName: String
-    private lateinit var artifactId: String
-    private lateinit var groupId: String
-    private lateinit var description: String
-    private lateinit var version: String
-    private lateinit var javaVersion: String
+    lateinit var applicationName: String
+    lateinit var artifactId: String
+    lateinit var groupId: String
+    lateinit var description: String
+    lateinit var version: String
+    lateinit var javaVersion: String
 
     @PostConstruct
     fun postConstruct() {
