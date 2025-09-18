@@ -15,12 +15,25 @@ spring:
   output:
     ansi:
       enabled: ALWAYS
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: manual
 server:
   port: ${SERVER_PORT:8080}
   use-forward-headers: true
   main.allow-bean-definition-overriding: true
 
 app:
+  rabbit:
+    exchange: ${ORDERS_EXCHANGE:orders.exchange}
+    queue: ${ORDER_CREATED_QUEUE:orders.created.queue}
+    routing-key: ${ORDER_CREATED:orders.created}
   info:
     application_name: @project.name@
     version: @project.version@

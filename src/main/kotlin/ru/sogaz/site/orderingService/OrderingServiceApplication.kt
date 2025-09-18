@@ -6,10 +6,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.runApplication
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing
 import ru.sogaz.site.orderingService.properties.AppInfoProperties
+import ru.sogaz.site.orderingService.properties.RabbitProps
 
-@SpringBootApplication
-@ConfigurationPropertiesScan("ru.sogaz.site.properties")
-@EnableConfigurationProperties(AppInfoProperties::class)
+@SpringBootApplication  
+@EnableConfigurationProperties(AppInfoProperties::class, RabbitProps::class)
 class OrderingServiceApplication
 
 fun main(args: Array<String>) {
