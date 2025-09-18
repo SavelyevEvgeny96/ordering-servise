@@ -13,7 +13,7 @@ import jakarta.persistence.Table
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 @Entity
 @Table(name = "payment_operation_history")
