@@ -19,7 +19,7 @@ import java.util.UUID
 @Entity
 @Table(name = "sub_orders")
 @EntityListeners(AuditingEntityListener::class)
-data class SubOrder(
+data class SubOrderEntity(
     @Id
     @GeneratedValue
     @UuidGenerator
@@ -27,12 +27,12 @@ data class SubOrder(
     val id: UUID,
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", referencedColumnName = "order_id", unique = true)
-    val order: Order? = null,
+    val orderEntity: OrderEntity? = null,
     @Column(name = "operation_id")
     val operationId: String? = null,
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "external_system_code", referencedColumnName = "external_system_code")
-    val externalSystem: ClientSystem? = null,
+    val externalSystem: ClientSystemEntity? = null,
     @Column(name = "doc_type")
     val docType: String? = null,
     @Column(name = "policy_id", nullable = false)
@@ -52,9 +52,9 @@ data class SubOrder(
     @Column(name = "manager_email")
     val managerEmail: String? = null,
     @CreatedDate
-    @Column(name = "create_date", nullable = false, updatable = false)
+    @Column(name = "create_date",updatable = false)
     val createDate: Instant? = null,
     @LastModifiedDate
-    @Column(name = "update_date", nullable = false)
+    @Column(name = "update_date")
     var updateDate: Instant? = null,
 )

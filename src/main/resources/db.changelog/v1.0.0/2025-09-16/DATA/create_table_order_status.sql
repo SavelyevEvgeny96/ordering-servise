@@ -1,21 +1,23 @@
-CREATE TABLE order_status (
-    id BIGSERIAL PRIMARY KEY,  -- Автоинкрементируемый ID
-    state_id VARCHAR(50) UNIQUE ,    -- Код статуса
-    state_name VARCHAR(255) NOT NULL -- Наименование статуса
+drop table order_status cascade;
 
+-- select unnest(enum_range(null::order_statuses_enum)); просмотр значений в базе
+CREATE TYPE order_statuses_enum as ENUM (
+    'NEW',
+    'UPDATE',
+    'OVERDUE',
+    'MARKEDDEL',
+    'SUCCESS'
 );
-INSERT INTO order_status(state_id,state_name)VALUES('NEW','Заказ создан');
-INSERT INTO order_status(state_id,state_name)VALUES('UPDATE','Заказ актуализирован (ранее по данному полису уже была сгенерирована ссылка, в результате запроса данные по ней обновлены)');
-INSERT INTO order_status(state_id,state_name)VALUES('OVERDUE','Заказ просрочен');
-INSERT INTO order_status(state_id,state_name)VALUES('MARKEDDEL','Заказ помечен на удаление');
-INSERT INTO order_status(state_id,state_name)VALUES('SUCCESS','Заказ оплачен');
 
+CREATE CAST (varchar AS order_statuses_enum) WITH INOUT AS IMPLICIT;
 
+create table order_status_descriptions (
+	status order_statuses_enum PRIMARY KEY,
+	comment VARCHAR(255) NOT NULL
+);
 
-
-
-
-
-
-
-
+INSERT INTO order_status_descriptions(status,comment)VALUES('NEW','Заказ создан');
+INSERT INTO order_status_descriptions(status,comment)VALUES('UPDATE','Заказ актуализирован (ранее по данному полису уже была сгенерирована ссылка, в результате запроса данные по ней обновлены)');
+INSERT INTO order_status_descriptions(status,comment)VALUES('OVERDUE','Заказ просрочен');
+INSERT INTO order_status_descriptions(status,comment)VALUES('MARKEDDEL','Заказ помечен на удаление');
+INSERT INTO order_status_descriptions(status,comment)VALUES('SUCCESS','Заказ оплачен');

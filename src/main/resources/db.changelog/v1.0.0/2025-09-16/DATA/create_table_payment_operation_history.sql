@@ -1,5 +1,5 @@
 CREATE TABLE payment_operation_history (
-    id BIGSERIAL PRIMARY KEY,                           -- Автоинкрементируемый ID
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),                           -- Автоинкрементируемый ID
     action BIGINT,                                      -- Действие
     action_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,    -- Дата выполнения операции
     action_author_id VARCHAR(255),                      -- Исполнитель

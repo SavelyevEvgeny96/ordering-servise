@@ -5,7 +5,7 @@ CREATE TABLE orders (
     recipient_user_gd_id VARCHAR(255),              -- Идентификатор золотой карточки страхователя
     key_card VARCHAR(255),                          -- Ключ привязки карты (для рекуррентных платежей)
     save_card VARCHAR(255),                         -- Признак необходимости сохранения данных карты
-    state_id VARCHAR(50),                           --Статус
+status order_statuses_enum,                         --Статус
     recurrent VARCHAR(255),                         -- Признак рекуррентного платежа
     payment_end_date VARCHAR(255),                  -- Дата окончания действия ссылки
     premium_amount VARCHAR(255),                    -- Размер премии
