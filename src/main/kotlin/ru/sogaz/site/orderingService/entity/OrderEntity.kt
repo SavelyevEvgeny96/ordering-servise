@@ -12,6 +12,8 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import org.hibernate.annotations.CreationTimestamp
+import org.hibernate.annotations.UpdateTimestamp
 import org.hibernate.annotations.UuidGenerator
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
@@ -39,6 +41,7 @@ data class OrderEntity(
     var status: OrderStatusesEnum = OrderStatusesEnum.NEW,
     @Column(name = "recurrent")
     val recurrent: String? = null,
+    @CreationTimestamp
     @Column(name = "payment_end_date")
     val paymentEndDate: Instant? = null,
     @Column(name = "premium_amount")
@@ -49,10 +52,10 @@ data class OrderEntity(
     val recipientPhone: String,
     @Column(name = "recipient_user_id")
     val recipientUserId: String? = null,
-    @CreatedDate
-    @Column(name = "create_date", nullable = false, updatable = false)
+    @CreationTimestamp
+    @Column(name = "create_date",updatable = false)
     val createDate: Instant? = null,
-    @LastModifiedDate
-    @Column(name = "update_date", nullable = false)
+    @UpdateTimestamp
+    @Column(name = "update_date")
     var updateDate: Instant? = null,
 )

@@ -10,6 +10,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import org.hibernate.annotations.CreationTimestamp
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.Instant
@@ -17,7 +18,6 @@ import java.util.UUID
 
 @Entity
 @Table(name = "payment_operation_history")
-@EntityListeners(AuditingEntityListener::class)
 data class PaymentOperationHistoryEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -25,7 +25,7 @@ data class PaymentOperationHistoryEntity(
     val id: UUID? = null,
     @Column(name = "action")
     val action: Long? = null,
-    @CreatedDate
+    @CreationTimestamp
     @Column(name = "action_date")
     val actionDate: Instant? = null,
     @ManyToOne(fetch = FetchType.LAZY)

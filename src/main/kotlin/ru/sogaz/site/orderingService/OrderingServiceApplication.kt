@@ -10,7 +10,6 @@ import ru.sogaz.site.orderingService.properties.AppInfoProperties
 @SpringBootApplication
 @ConfigurationPropertiesScan("ru.sogaz.site.properties")
 @EnableConfigurationProperties(AppInfoProperties::class)
-@EnableJpaAuditing
 class OrderingServiceApplication
 
 fun main(args: Array<String>) {

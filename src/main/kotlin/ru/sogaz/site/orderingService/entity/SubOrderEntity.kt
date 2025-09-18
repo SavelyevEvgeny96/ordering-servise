@@ -9,6 +9,8 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import org.hibernate.annotations.CreationTimestamp
+import org.hibernate.annotations.UpdateTimestamp
 import org.hibernate.annotations.UuidGenerator
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
@@ -51,10 +53,10 @@ data class SubOrderEntity(
     val premiumAmount: String? = null,
     @Column(name = "manager_email")
     val managerEmail: String? = null,
-    @CreatedDate
+    @CreationTimestamp
     @Column(name = "create_date",updatable = false)
     val createDate: Instant? = null,
-    @LastModifiedDate
+    @UpdateTimestamp
     @Column(name = "update_date")
     var updateDate: Instant? = null,
 )
