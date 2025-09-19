@@ -1,7 +1,6 @@
-drop table order_status cascade;
 
--- select unnest(enum_range(null::order_statuses_enum)); просмотр значений в базе
-CREATE TYPE order_statuses_enum as ENUM (
+DROP TYPE IF EXISTS order_statuses_enum CASCADE;
+CREATE TYPE order_statuses_enum AS ENUM (
     'NEW',
     'UPDATE',
     'OVERDUE',
