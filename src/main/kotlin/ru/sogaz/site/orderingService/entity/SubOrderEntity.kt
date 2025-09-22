@@ -20,7 +20,6 @@ import java.util.UUID
 
 @Entity
 @Table(name = "sub_orders")
-@EntityListeners(AuditingEntityListener::class)
 data class SubOrderEntity(
     @Id
     @GeneratedValue
@@ -32,9 +31,6 @@ data class SubOrderEntity(
     val orderEntity: OrderEntity? = null,
     @Column(name = "operation_id")
     val operationId: String? = null,
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "external_system_code", referencedColumnName = "external_system_code")
-    val externalSystem: ClientSystemEntity? = null,
     @Column(name = "doc_type")
     val docType: String? = null,
     @Column(name = "policy_id", nullable = false)

@@ -24,6 +24,10 @@ spring:
     listener:
       simple:
         acknowledge-mode: auto
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: UTC
 server:
   port: ${SERVER_PORT:8080}
   use-forward-headers: true

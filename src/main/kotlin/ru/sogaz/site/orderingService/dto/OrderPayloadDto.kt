@@ -1,11 +1,14 @@
 package ru.sogaz.site.orderingService.dto
 
-data class OrderMessageDto(
-    val orderId: String,              // идентификатор заказа
-    val eventType: String,            // тип события ("order_created")
-    val timestamp: String,            // время создания
-    val author: String,               // источник события
-    val externalSystemCode: String,   // код внешней системы (обязателен)
+import com.fasterxml.jackson.annotation.JsonFormat
+import jakarta.validation.constraints.Email
+import jakarta.validation.constraints.NotBlank
+import java.time.Instant
+
+data class OrderPayloadDto(
+    @field:NotBlank
+    val orderId: String,
+    @field:Email
     val recipientEmail: String?,      // email страхователя
     val recipientPhone: String?,      // телефон страхователя
     val recipientUserId: String?,     // ID личного кабинета
@@ -14,6 +17,7 @@ data class OrderMessageDto(
     val keyCard: String?,             // ключ карты (если recurrent=true)
     val saveCard: Boolean? = null,    // сохранять карту?
     val managerEmail: String?,        // менеджер по заказу
-    val paymentEndDate: String?,      // срок актуальности заказа
-    val payments: List<PaymentDto>    // список полисов внутри заказа
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ssXXX")
+    val orderEndDate: Instant?,      // срок актуальности заказа
+    val subOrders: List<SubOrderDto>    // список полисов внутри заказа
 )

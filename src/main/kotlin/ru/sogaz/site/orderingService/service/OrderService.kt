@@ -1,7 +1,7 @@
 package ru.sogaz.site.orderingService.service
 
-import ru.sogaz.site.orderingService.dto.OrderMessageDto
+import ru.sogaz.site.orderingService.dto.OrderPayloadDto
 
 interface OrderService {
-    fun processOrder(order: OrderMessageDto)
+    fun processOrder(payload: OrderPayloadDto, eventTimeIso: String, author: String,routingKey: String,)
 }

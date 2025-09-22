@@ -42,8 +42,8 @@ data class OrderEntity(
     @Column(name = "recurrent")
     val recurrent: String? = null,
     @CreationTimestamp
-    @Column(name = "payment_end_date")
-    val paymentEndDate: Instant? = null,
+    @Column(name = "order_end_date")
+    val orderEndDate: Instant? = null,
     @Column(name = "premium_amount")
     val premiumAmount: String? = null,
     @Column(name = "recipient_email", nullable = false)
