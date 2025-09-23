@@ -10,14 +10,20 @@ spring:
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:123456}
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: 12          # подгони под concurrency
+      minimum-idle: 4
+      connection-timeout: 20000      # мс
+      idle-timeout: 600000           # мс
+      max-lifetime: 1700000          # мс (~28 мин; немного меньше, чем у PG/балансера)
       data-source-properties:
-        reWriteBatchedInserts: true     # ключ к быстрому INSERT в PG
-      jpa:
-        properties:
-          hibernate.jdbc.batch_size: 50
-          hibernate.order_inserts: true
-          hibernate.jdbc.batch_versioned_data: true
+        reWriteBatchedInserts: true
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate.jdbc.batch_size: 50
+      hibernate.order_inserts: true
+      hibernate.order_updates: true
+      hibernate.jdbc.batch_versioned_data: true
   liquibase:
     change-log: db.changelog/db.changelog-master.yaml
     enabled: true
@@ -43,6 +49,12 @@ server:
   main.allow-bean-definition-overriding: true
 
 app:
+  listener:
+    batch-size: 100
+    prefetch: 200
+    concurrency: 3
+    max-concurrency: 8
+    receive-timeout-ms: 500
   rabbit:
     exchange: ${ORDERS_EXCHANGE:orders.exchange}
     queue: ${ORDER_CREATED_QUEUE:orders.created.queue}

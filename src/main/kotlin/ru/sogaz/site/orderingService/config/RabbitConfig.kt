@@ -1,6 +1,7 @@
 package ru.sogaz.site.orderingService.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.springframework.amqp.core.AcknowledgeMode
 import org.springframework.amqp.core.Binding
 import org.springframework.amqp.core.BindingBuilder
 import org.springframework.amqp.core.Queue
@@ -12,12 +13,16 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter
 import org.springframework.amqp.support.converter.MessageConverter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import ru.sogaz.site.orderingService.properties.RabbitListenerProps
 import ru.sogaz.site.orderingService.properties.RabbitProps
 
 
 @Configuration
 class RabbitConfig(
+    private val connectionFactory: ConnectionFactory,
+    private val messageConverter: MessageConverter,
     private val props: RabbitProps,
+    private val propsListener: RabbitListenerProps,
     private val objectMapper: ObjectMapper) {
 
     @Bean
@@ -36,20 +41,25 @@ fun messageConverter(): MessageConverter {
 }
 
 @Bean
-fun rabbitTemplate(connectionFactory: ConnectionFactory, messageConverter: MessageConverter): RabbitTemplate {
+fun rabbitTemplate(): RabbitTemplate {
     return RabbitTemplate(connectionFactory).apply {
         this.messageConverter = messageConverter
     }
 }
-
-@Bean
-fun listenerFactory(
-    connectionFactory: ConnectionFactory,
-    messageConverter: MessageConverter
-): SimpleRabbitListenerContainerFactory {
-    return SimpleRabbitListenerContainerFactory().apply {
+    @Bean("batchContainerFactory")
+    fun batchContainerFactory() = SimpleRabbitListenerContainerFactory().apply {
         setConnectionFactory(connectionFactory)
         setMessageConverter(messageConverter)
+
+        setBatchListener(true)
+        setConsumerBatchEnabled(true)
+
+        setBatchSize(propsListener.batchSize)
+        setPrefetchCount(propsListener.prefetch)
+        setConcurrentConsumers(propsListener.concurrency)
+        setMaxConcurrentConsumers(propsListener.maxConcurrency)
+
+        setAcknowledgeMode(AcknowledgeMode.AUTO)
+        setReceiveTimeout(propsListener.receiveTimeoutMs)
     }
-}
 }
