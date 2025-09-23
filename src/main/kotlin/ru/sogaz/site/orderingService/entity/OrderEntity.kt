@@ -19,42 +19,53 @@ import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import ru.sogaz.site.orderingService.enums.OrderStatusesEnum
+import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
 @Entity
 @Table(name = "orders")
-@EntityListeners(AuditingEntityListener::class)
 data class OrderEntity(
+
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "order_id")
-    val id: UUID? = null,
+    @Column(name = "order_id", columnDefinition = "uuid")
+    var id: UUID? = null,
+
     @Column(name = "recipient_user_gd_id")
-    val recipientUserGdId: String? = null,
+    var recipientUserGdId: String? = null,
+
     @Column(name = "key_card")
-    val keyCard: String? = null,
+    var keyCard: String? = null,
+
     @Column(name = "save_card")
-    val saveCard: String? = null,
+    var saveCard: Boolean? = null,
+
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "status")
+    @Column(name = "status")
     var status: OrderStatusesEnum = OrderStatusesEnum.NEW,
+
     @Column(name = "recurrent")
-    val recurrent: String? = null,
-    @CreationTimestamp
-    @Column(name = "order_end_date")
-    val orderEndDate: Instant? = null,
-    @Column(name = "premium_amount")
-    val premiumAmount: String? = null,
+    var recurrent: Boolean? = null,
+
+    @Column(name = "payment_end_date")
+    var paymentEndDate: Instant? = null,
+
+    @Column(name = "premium_amount", precision = 19, scale = 2)
+    var premiumAmount: BigDecimal? = null,
+
     @Column(name = "recipient_email", nullable = false)
-    val recipientEmail: String,
+    var recipientEmail: String = "",
+
     @Column(name = "recipient_phone", nullable = false)
-    val recipientPhone: String,
+    var recipientPhone: String = "",
+
     @Column(name = "recipient_user_id")
-    val recipientUserId: String? = null,
+    var recipientUserId: String? = null,
+
     @CreationTimestamp
-    @Column(name = "create_date",updatable = false)
-    val createDate: Instant? = null,
+    @Column(name = "create_date", updatable = false)
+    var createDate: Instant? = null,
+
     @UpdateTimestamp
     @Column(name = "update_date")
     var updateDate: Instant? = null,

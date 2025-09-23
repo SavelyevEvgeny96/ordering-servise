@@ -1,6 +1,6 @@
 CREATE TABLE sub_orders (
    sub_order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),     -- GUID ID подзаказа
-   order_id UUID NOT NULL UNIQUE,        -- GUID ID заказа
+   order_id UUID NOT NULL,        -- GUID ID заказа
    operation_id VARCHAR(255) ,           -- Идентификатор операции
    doc_type VARCHAR(255),                  -- Тип документа
    policy_id VARCHAR(255) NOT NULL,        -- Идентификатор полиса
@@ -15,3 +15,5 @@ CREATE TABLE sub_orders (
    update_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,   -- Дата обновления, автоматически заполняется
    FOREIGN KEY (order_id) REFERENCES orders(order_id) -- Связь с айди заказа
 );
+-- индекс для скорости выборок по заказу
+CREATE INDEX idx_sub_orders_order_id ON sub_orders(order_id);
