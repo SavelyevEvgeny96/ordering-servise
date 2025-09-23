@@ -31,10 +31,10 @@ data class SubOrderEntity(
     var operationId: String? = null,
 
     @Column(name = "policy_id", nullable = false)
-    var policyId: String,
+    var policyId: String="",
 
     @Column(name = "policy_number", nullable = false)
-    var policyNumber: String,
+    var policyNumber: String="",
 
     @Column(name = "contract_id")
     var contractId: String? = null,

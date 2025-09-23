@@ -1,6 +1,7 @@
 package ru.sogaz.site.orderingService.dao.impl
 
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import ru.sogaz.site.orderingService.dao.OrderDao
 import ru.sogaz.site.orderingService.dto.OrderPayloadDto
 import ru.sogaz.site.orderingService.entity.OrderEntity
@@ -15,7 +16,6 @@ class OrderDaoImpl(
     private val orderRepository: OrderRepository,
     private val subOrderRepository: SubOrderRepository,
 ) : OrderDao {
-
 
     override fun upsertOrderWithSubOrders(dto: OrderPayloadDto) {
         val orderId = UUID.fromString(dto.orderId)
