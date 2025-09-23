@@ -8,5 +8,5 @@ data class RabbitListenerProps(
     var prefetch: Int = 200,
     var concurrency: Int = 3,
     var maxConcurrency: Int = 8,
-    var receiveTimeoutMs: Long = 500
+    var receiveTimeoutMs: Long = 500,
 )

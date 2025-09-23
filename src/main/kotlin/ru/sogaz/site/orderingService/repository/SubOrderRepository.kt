@@ -6,7 +6,6 @@ import org.springframework.transaction.annotation.Transactional
 import ru.sogaz.site.orderingService.entity.SubOrderEntity
 import java.util.*
 
-
 interface SubOrderRepository : JpaRepository<SubOrderEntity, UUID> {
     @Modifying
     @Transactional
