@@ -15,13 +15,9 @@ spring:
         reWriteBatchedInserts: true     # ключ к быстрому INSERT в PG
       jpa:
         properties:
-          hibernate:
-            jdbc:
-              batch_size: 50
-            order_inserts: true
-            order_updates: true
-            jdbc.batch_versioned_data: true
-        open-in-view: false
+          hibernate.jdbc.batch_size: 50
+          hibernate.order_inserts: true
+          hibernate.jdbc.batch_versioned_data: true
   liquibase:
     change-log: db.changelog/db.changelog-master.yaml
     enabled: true
@@ -81,13 +77,16 @@ management:
     readinessState:
       enable: true
 
-
 logging:
   level:
-    ru:
-      sogaz:
-        site:
-          pattern: ${LOGGING_LEVEL_RU_SOGAZ_ESB:DEBUG}
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+#logging:
+#  level:
+#    ru:
+#      sogaz:
+#        site:
+#          pattern: ${LOGGING_LEVEL_RU_SOGAZ_ESB:DEBUG}
 
 logstash:
   host: ${LOG_SERVER_HOST:localhost}

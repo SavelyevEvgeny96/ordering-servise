@@ -2,7 +2,6 @@ CREATE TABLE sub_orders (
    sub_order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),     -- GUID ID подзаказа
    order_id UUID NOT NULL,        -- GUID ID заказа
    operation_id VARCHAR(255) ,           -- Идентификатор операции
-   doc_type VARCHAR(255),                  -- Тип документа
    policy_id VARCHAR(255) NOT NULL,        -- Идентификатор полиса
    policy_number VARCHAR(255) NOT NULL,    -- Номер полиса
    contract_id VARCHAR(255),               -- Идентификатор договора

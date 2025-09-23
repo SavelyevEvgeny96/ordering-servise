@@ -2,19 +2,15 @@ package ru.sogaz.site.orderingService.entity
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
-import jakarta.persistence.EntityListeners
 import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
-import org.hibernate.annotations.UuidGenerator
-import org.springframework.data.annotation.CreatedDate
-import org.springframework.data.annotation.LastModifiedDate
-import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
@@ -23,8 +19,7 @@ import java.util.UUID
 data class SubOrderEntity(
 
     @Id
-    @GeneratedValue
-    @UuidGenerator
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "sub_order_id")
     var id: UUID? = null,
 
@@ -35,9 +30,6 @@ data class SubOrderEntity(
     @Column(name = "operation_id")
     var operationId: String? = null,
 
-    @Column(name = "doc_type")
-    var docType: String? = null,
-
     @Column(name = "policy_id", nullable = false)
     var policyId: String,
 
@@ -47,8 +39,8 @@ data class SubOrderEntity(
     @Column(name = "contract_id")
     var contractId: String? = null,
 
-    @Column(name = "contract_number", nullable = false)
-    var contractNumber: String,
+    @Column(name = "contract_number")
+    var contractNumber: String? = null,
 
     @Column(name = "insurance_program")
     var insuranceProgram: String? = null,

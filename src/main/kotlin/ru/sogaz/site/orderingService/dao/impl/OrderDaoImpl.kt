@@ -43,18 +43,16 @@ class OrderDaoImpl(
         }
         orderRepository.save(order) // insert или update
 
-        // 2) заменяем подзаказы (простая и понятная политика "полная замена")
+
         subOrderRepository.deleteByOrderEntityId(orderId)
 
         val subs = dto.subOrders.map { s ->
             SubOrderEntity(
                 orderEntity = order,
-                operationId = null,
-                docType = null,
-                policyId = requireNotNull(s.policyId) { "policyId required" },
-                policyNumber = requireNotNull(s.policyNumber) { "policyNumber required" },
+                policyId = s.policyId,
+                policyNumber = s.policyNumber,
                 contractId = s.contractId,
-                contractNumber = requireNotNull(s.contractNumber) { "contractNumber required" },
+                contractNumber = s.contractNumber,
                 insuranceProgram = s.insuranceProgram,
                 typeInsurance = s.typeInsurance,
                 premiumAmount = s.premiumAmount,
