@@ -19,9 +19,10 @@ class OrderBatchBatchConsumerImpl(private val orderDao: OrderDao) : OrderBatchCo
     )
     override fun handleBatch(
         payloads: List<OrderPayloadDto>,
-        @Header(name = "x-event-time") eventTimeIso: String,
-        @Header(name = "x-author") author: String,
-        @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) routingKey: String,
+        // Подумать как на пачку пробрасывать
+//        @Header(name = "x-event-time") eventTimeIso: String,
+//        @Header(name = "x-author") author: String,
+//        @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) routingKey: String,
         ) {
         orderDao.upsertBatch(payloads)
     }

@@ -16,50 +16,52 @@ import org.springframework.context.annotation.Configuration
 import ru.sogaz.site.orderingService.properties.RabbitListenerProps
 import ru.sogaz.site.orderingService.properties.RabbitProps
 
-
 @Configuration
 class RabbitConfig(
     private val connectionFactory: ConnectionFactory,
-    private val messageConverter: MessageConverter,
     private val props: RabbitProps,
-    private val propsListener: RabbitListenerProps,
-    private val objectMapper: ObjectMapper) {
+    private val propsListener: RabbitListenerProps
+) {
 
     @Bean
-fun ordersQueue(): Queue = Queue(props.queue, true)
+    fun ordersQueue(): Queue = Queue(props.queue, true)
 
-@Bean
-fun ordersExchange(): TopicExchange = TopicExchange(props.exchange)
+    @Bean
+    fun ordersExchange(): TopicExchange = TopicExchange(props.exchange)
 
-@Bean
-fun ordersBinding(queue: Queue, exchange: TopicExchange): Binding =
-    BindingBuilder.bind(queue).to(exchange).with(props.routingKey)
+    @Bean
+    fun ordersBinding(queue: Queue, exchange: TopicExchange): Binding =
+        BindingBuilder.bind(queue).to(exchange).with(props.routingKey)
 
-@Bean
-fun messageConverter(): MessageConverter {
-    return Jackson2JsonMessageConverter(objectMapper)
-}
+    @Bean
+    fun jacksonMessageConverter(objectMapper: ObjectMapper): MessageConverter =
+        Jackson2JsonMessageConverter(objectMapper)
 
-@Bean
-fun rabbitTemplate(): RabbitTemplate {
-    return RabbitTemplate(connectionFactory).apply {
-        this.messageConverter = messageConverter
-    }
-}
+    @Bean
+    fun rabbitTemplate(
+        messageConverter: MessageConverter
+    ): RabbitTemplate =
+        RabbitTemplate(connectionFactory).apply {
+            this.messageConverter = messageConverter
+        }
+
     @Bean("batchContainerFactory")
-    fun batchContainerFactory() = SimpleRabbitListenerContainerFactory().apply {
-        setConnectionFactory(connectionFactory)
-        setMessageConverter(messageConverter)
+    fun batchContainerFactory(
+        messageConverter: MessageConverter
+    ): SimpleRabbitListenerContainerFactory =
+        SimpleRabbitListenerContainerFactory().apply {
+            setConnectionFactory(connectionFactory)
+            setMessageConverter(messageConverter)
 
-        setBatchListener(true)
-        setConsumerBatchEnabled(true)
+            setBatchListener(true)
+            setConsumerBatchEnabled(true)
 
-        setBatchSize(propsListener.batchSize)
-        setPrefetchCount(propsListener.prefetch)
-        setConcurrentConsumers(propsListener.concurrency)
-        setMaxConcurrentConsumers(propsListener.maxConcurrency)
+            setBatchSize(propsListener.batchSize)
+            setPrefetchCount(propsListener.prefetch)
+            setConcurrentConsumers(propsListener.concurrency)
+            setMaxConcurrentConsumers(propsListener.maxConcurrency)
 
-        setAcknowledgeMode(AcknowledgeMode.AUTO)
-        setReceiveTimeout(propsListener.receiveTimeoutMs)
-    }
+            setAcknowledgeMode(AcknowledgeMode.AUTO)
+            setReceiveTimeout(propsListener.receiveTimeoutMs)
+        }
 }
