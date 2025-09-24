@@ -1,5 +1,6 @@
 package ru.sogaz.site.orderingService.entity
 
+import jakarta.persistence.Transient
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -21,7 +22,7 @@ import java.util.UUID
 data class OrderEntity(
     @Id
     @Column(name = "order_id", columnDefinition = "uuid")
-    var id: UUID? = null,
+    var orderId: UUID? = null,
     @Column(name = "recipient_user_gd_id")
     var recipientUserGdId: String? = null,
     @Column(name = "key_card")
@@ -51,19 +52,18 @@ data class OrderEntity(
     var updateDate: Instant? = null,
 ) : Persistable<UUID> {
     /* Persistable реализовано для того что бы при вызове метода
-    saveAll() под капотом не вызывался merge()- для слияния на каждый id делает select,
-    а это дорого если патчи будут по 100 записей поэтому флаг isNewAggregate =true,
-    что бы вызвался persist() вместо merge()
-     */
+  saveAll() под капотом не вызывался merge()- для слияния на каждый id делает select,
+  а это дорого если патчи будут по 100 записей поэтому флаг isNewAggregate =true,
+  что бы вызвался persist() вместо merge()
+   */
     @Transient
     private var isNewAggregate: Boolean = true
-
-    override fun getId(): UUID? = id
+    override fun getId(): UUID? = orderId
     override fun isNew(): Boolean = isNewAggregate
 
-    fun setIdFromExternal(id: UUID) {
-        this.id = id
-        this.isNewAggregate = true
+    fun setIdFromExternal(value: UUID) {
+        orderId = value
+        isNewAggregate = true
     }
 
     @PostLoad
