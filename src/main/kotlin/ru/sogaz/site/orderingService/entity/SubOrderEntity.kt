@@ -22,7 +22,7 @@ data class SubOrderEntity(
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "sub_order_id")
     var id: UUID? = null,
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne
     @JoinColumn(name = "order_id", referencedColumnName = "order_id", nullable = false)
     var orderEntity: OrderEntity? = null,
     @Column(name = "operation_id")

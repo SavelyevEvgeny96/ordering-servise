@@ -89,10 +89,9 @@ management:
     readinessState:
       enable: true
 
-logging:
-  level:
-    org.hibernate.SQL: debug
-    org.hibernate.orm.jdbc.bind: trace
+logging.level.org.hibernate.engine.jdbc.batch.internal: DEBUG
+logging.level.org.hibernate.stat: DEBUG
+spring.jpa.properties.hibernate.generate_statistics: true
 #logging:
 #  level:
 #    ru:
