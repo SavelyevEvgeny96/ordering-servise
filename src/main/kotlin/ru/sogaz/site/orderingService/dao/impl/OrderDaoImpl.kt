@@ -18,59 +18,77 @@ import java.util.UUID
 class OrderDaoImpl(
     private val orderRepository: OrderRepository,
     private val subOrderRepository: SubOrderRepository,
-    @PersistenceContext private val em: EntityManager   // для явного flush
+    @PersistenceContext private val em: EntityManager
 ) : OrderDao {
-    companion object{
-        const val SUCCESSFUL_QUEUE_PROCESSING = "Обработка записи из очереди успешно произведена: routingKey=%s, " +
-                "author=%s, eventTime=%s"
+
+    companion object {
+        const val SUCCESSFUL_QUEUE_PROCESSING =
+            "Обработка записи из очереди успешно произведена: routingKey=%s, author=%s, eventTime=%s"
+        const val BATCH_SUMMARY = "Итог обработки пачки: количество=%d, длительность(мс)=%d"
+        const val BATCH_FAILED  = "Сбой обработки пачки на orderId=%s, причина=%s"
     }
+
     private val logger = loggerFor(javaClass)
+
     @Transactional
     override fun upsertBatch(batch: List<OrderPayloadDto>) {
-        val newOrders = ArrayList<OrderEntity>(batch.size)
+        val startedNs = System.nanoTime()
+        var currentOrderId: String? = null
 
-        val allSubs = ArrayList<SubOrderEntity>(batch.sumOf { it.subOrders.size })
+        try {
+            val newOrders = ArrayList<OrderEntity>(batch.size)
+            val allSubs = ArrayList<SubOrderEntity>(batch.sumOf { it.subOrders.size })
 
-        for (dto in batch) {
-            val meta = dto.metaInfo.lastOrNull()
-            logger.info(SUCCESSFUL_QUEUE_PROCESSING.format(meta?.routingKey, meta?.author, meta?.eventTimeIso))
-            val order = OrderEntity().apply {
-                setIdFromExternal(UUID.fromString(dto.orderId))
-                recipientEmail = dto.recipientEmail ?: ""
-                recipientPhone = dto.recipientPhone ?: ""
-                recipientUserGdId = dto.recipientGdId
-                keyCard = dto.keyCard
-                saveCard = dto.saveCard
-                recurrent = dto.recurrent
-                paymentEndDate = dto.orderEndDate
-                recipientUserId = dto.recipientUserId
-                premiumAmount = dto.subOrders
-                    .map { it.premiumAmount }
-                    .fold(BigDecimal.ZERO, BigDecimal::add)
-                    .takeIf { it > BigDecimal.ZERO }
+            for (dto in batch) {
+                currentOrderId = dto.orderId
+
+                val meta = dto.metaInfo.lastOrNull()
+                logger.info(SUCCESSFUL_QUEUE_PROCESSING.format(meta?.routingKey, meta?.author, meta?.eventTimeIso))
+
+                val order = OrderEntity().apply {
+                    setIdFromExternal(UUID.fromString(dto.orderId))
+                    recipientEmail = dto.recipientEmail ?: ""
+                    recipientPhone = dto.recipientPhone ?: ""
+                    recipientUserGdId = dto.recipientGdId
+                    keyCard = dto.keyCard
+                    saveCard = dto.saveCard
+                    recurrent = dto.recurrent
+                    paymentEndDate = dto.orderEndDate
+                    recipientUserId = dto.recipientUserId
+                    premiumAmount = dto.subOrders
+                        .map { it.premiumAmount }
+                        .fold(BigDecimal.ZERO, BigDecimal::add)
+                        .takeIf { it > BigDecimal.ZERO }
+                }
+                newOrders += order
+
+                dto.subOrders.forEach { s ->
+                    allSubs += SubOrderEntity(
+                        orderEntity = order,
+                        policyId = s.policyId,
+                        policyNumber = s.policyNumber,
+                        contractId = s.contractId,
+                        contractNumber = s.contractNumber,
+                        insuranceProgram = s.insuranceProgram,
+                        typeInsurance = s.typeInsurance,
+                        premiumAmount = s.premiumAmount,
+                        managerEmail = dto.managerEmail
+                    )
+                }
             }
-            newOrders += order
-            dto.subOrders.forEach { s ->
-                allSubs += SubOrderEntity(
-                    orderEntity = order,
-                    policyId = s.policyId,
-                    policyNumber = s.policyNumber,
-                    contractId = s.contractId,
-                    contractNumber = s.contractNumber,
-                    insuranceProgram = s.insuranceProgram,
-                    typeInsurance = s.typeInsurance,
-                    premiumAmount = s.premiumAmount,
-                    managerEmail = dto.managerEmail
-                )
-            }
+
+            orderRepository.saveAll(newOrders)
+            em.flush()
+            subOrderRepository.saveAll(allSubs)
+
+        } catch (ex: Exception) {
+//            фикс на каком currentOrderId все повалилось и причина
+            logger.error(BATCH_FAILED.format(currentOrderId, ex.message))
+                // ex для отката транзакции
+            throw ex
+        } finally {
+            val durationMs = (System.nanoTime() - startedNs) / 1_000_000
+            logger.info(BATCH_SUMMARY.format(batch.size, durationMs))
         }
-
-        // 2) Вставляем РОДИТЕЛЕЙ без SELECT (persist)
-        orderRepository.saveAll(newOrders)
-
-        // 3) Явный flush — чтобы родительские строки уже были в БД,
-        em.flush()
-
-        subOrderRepository.saveAll(allSubs)
     }
 }
