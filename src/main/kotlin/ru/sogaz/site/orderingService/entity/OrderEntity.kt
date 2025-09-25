@@ -56,6 +56,7 @@ data class OrderEntity(
   а это дорого если патчи будут по 100 записей поэтому флаг isNewAggregate =true,
   что бы вызвался persist() вместо merge()
    */
+
     @Transient
     private var isNewAggregate: Boolean = true
     override fun getId(): UUID? = orderId

@@ -15,11 +15,7 @@ class OrderBatchBatchConsumerImpl(
         containerFactory = "batchContainerFactory",
     )
     override fun handleBatch(
-        payloads: List<OrderPayloadDto>,
-        // Подумать как на пачку пробрасывать
-//        @Header(name = "x-event-time") eventTimeIso: String,
-//        @Header(name = "x-author") author: String,
-//        @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) routingKey: String,
+        payloads: List<OrderPayloadDto>
     ) {
         orderDao.upsertBatch(payloads)
     }

@@ -2,12 +2,14 @@ package ru.sogaz.site.orderingService.dao.impl
 
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
+import jakarta.persistence.TransactionRequiredException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import ru.sogaz.site.orderingService.dao.OrderDao
 import ru.sogaz.site.orderingService.dto.OrderPayloadDto
 import ru.sogaz.site.orderingService.entity.OrderEntity
 import ru.sogaz.site.orderingService.entity.SubOrderEntity
+import ru.sogaz.site.orderingService.loggerFor
 import ru.sogaz.site.orderingService.repository.OrderRepository
 import ru.sogaz.site.orderingService.repository.SubOrderRepository
 import java.math.BigDecimal
@@ -18,17 +20,19 @@ class OrderDaoImpl(
     private val subOrderRepository: SubOrderRepository,
     @PersistenceContext private val em: EntityManager   // для явного flush
 ) : OrderDao {
-
+    private val logger = loggerFor(javaClass)
     @Transactional
     override fun upsertBatch(batch: List<OrderPayloadDto>) {
-        //TODO: работает щас очень быстро 20000 сообщений за несколько минут
-        //TODO:  но вот вопрос который заметил а именно валидация полей и отмена сообщений
-        //TODO: но по сути там валидация только на имэйл и телефон почему бы это не проверять на фронте
         val newOrders = ArrayList<OrderEntity>(batch.size)
 
         val allSubs = ArrayList<SubOrderEntity>(batch.sumOf { it.subOrders.size })
 
         for (dto in batch) {
+            val meta = dto.metaInfo.lastOrNull()
+            logger.info(
+                "Обработка записи из очереди успешно произведена: routingKey={}, author={}, eventTime={}",
+                meta?.routingKey, meta?.author, meta?.eventTimeIso
+            )
             val order = OrderEntity().apply {
                 setIdFromExternal(UUID.fromString(dto.orderId))
                 recipientEmail = dto.recipientEmail ?: ""

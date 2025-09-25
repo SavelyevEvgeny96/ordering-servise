@@ -11,6 +11,8 @@ data class SubOrderDto(
     @field:NotNull
     val policyId: String, // идентификатор полиса
     @field:NotNull
+    val operationId: String,
+    @field:NotNull
     val policyNumber: String, // номер полиса
     val contractNumber: String?, // идентификатор договора
     val contractId: String?, // номер договора

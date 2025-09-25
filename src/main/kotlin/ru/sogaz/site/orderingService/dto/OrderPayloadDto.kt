@@ -3,9 +3,12 @@ package ru.sogaz.site.orderingService.dto
 import com.fasterxml.jackson.annotation.JsonFormat
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotNull
 import java.time.Instant
 
 data class OrderPayloadDto(
+    @field:NotNull
+    val metaInfo: List<MetaInfoOrder>,
     @field:NotBlank
     val orderId: String,
     @field:Email
