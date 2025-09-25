@@ -20,6 +20,10 @@ class OrderDaoImpl(
     private val subOrderRepository: SubOrderRepository,
     @PersistenceContext private val em: EntityManager   // для явного flush
 ) : OrderDao {
+    companion object{
+        const val SUCCESSFUL_QUEUE_PROCESSING = "Обработка записи из очереди успешно произведена: routingKey=%s, " +
+                "author=%s, eventTime=%s"
+    }
     private val logger = loggerFor(javaClass)
     @Transactional
     override fun upsertBatch(batch: List<OrderPayloadDto>) {
@@ -29,10 +33,7 @@ class OrderDaoImpl(
 
         for (dto in batch) {
             val meta = dto.metaInfo.lastOrNull()
-            logger.info(
-                "Обработка записи из очереди успешно произведена: routingKey={}, author={}, eventTime={}",
-                meta?.routingKey, meta?.author, meta?.eventTimeIso
-            )
+            logger.info(SUCCESSFUL_QUEUE_PROCESSING.format(meta?.routingKey, meta?.author, meta?.eventTimeIso))
             val order = OrderEntity().apply {
                 setIdFromExternal(UUID.fromString(dto.orderId))
                 recipientEmail = dto.recipientEmail ?: ""
