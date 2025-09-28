@@ -49,16 +49,19 @@ server:
   main.allow-bean-definition-overriding: true
 
 app:
-  listener:
-    batch-size: 100
-    prefetch: 200
-    concurrency: 3
-    max-concurrency: 8
-    receive-timeout-ms: 500
   rabbit:
     exchange: ${ORDERS_EXCHANGE:orders.exchange}
-    queue: ${ORDER_CREATED_QUEUE:orders.created.queue}
-    routing-key: ${ORDER_CREATED:orders.created}
+    queue-order: ${ORDER_CREATED_QUEUE:orders.created.queue}
+    queue-payment: ${PAYMENT_CREATED_QUEUE:payment.created.queue}
+    routing-key-order: ${ROUTING_KEY_ORDERS_CREATED:orders.created}
+    routing-key-payment: ${ROUTING_KEY_PAYMENTS_CREATED:payments.created}
+    listener:
+      batch-size: 100
+      prefetch: 200
+      concurrency: 3
+      max-concurrency: 8
+      receive-timeout-ms: 500
+
   info:
     application_name: @project.name@
     version: @project.version@

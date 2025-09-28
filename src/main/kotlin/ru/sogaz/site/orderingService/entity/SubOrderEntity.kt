@@ -19,9 +19,8 @@ import java.util.UUID
 @Table(name = "sub_orders")
 data class SubOrderEntity(
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "sub_order_id")
-    var id: UUID? = null,
+    @Column(name = "sub_order_id", columnDefinition = "uuid")
+    var id: UUID = UUID.randomUUID(),
     @ManyToOne
     @JoinColumn(name = "order_id", referencedColumnName = "order_id", nullable = false)
     var orderEntity: OrderEntity? = null,

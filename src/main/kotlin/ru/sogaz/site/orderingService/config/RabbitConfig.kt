@@ -1,16 +1,13 @@
 package ru.sogaz.site.orderingService.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.springframework.amqp.core.AcknowledgeMode
-import org.springframework.amqp.core.Binding
-import org.springframework.amqp.core.BindingBuilder
-import org.springframework.amqp.core.Queue
-import org.springframework.amqp.core.TopicExchange
+import org.springframework.amqp.core.*
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory
 import org.springframework.amqp.rabbit.connection.ConnectionFactory
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter
 import org.springframework.amqp.support.converter.MessageConverter
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import ru.sogaz.site.orderingService.properties.RabbitListenerProps
@@ -20,22 +17,32 @@ import ru.sogaz.site.orderingService.properties.RabbitProps
 class RabbitConfig(
     private val connectionFactory: ConnectionFactory,
     private val props: RabbitProps,
-    private val propsListener: RabbitListenerProps,
+    private val propsListener: RabbitListenerProps
 ) {
     @Bean
-    fun ordersQueue(): Queue = Queue(props.queue, true)
+    fun ordersExchange(): TopicExchange = TopicExchange(props.exchange, true, false)
 
-    @Bean
-    fun ordersExchange(): TopicExchange = TopicExchange(props.exchange)
+    @Bean(name = ["ordersQueue"])
+    fun ordersQueue(): Queue = Queue(props.queueOrder, true)
+
+    @Bean(name = ["paymentsQueue"])
+    fun paymentsQueue(): Queue = Queue(props.queuePayment, true)
 
     @Bean
     fun ordersBinding(
-        queue: Queue,
-        exchange: TopicExchange,
-    ): Binding = BindingBuilder.bind(queue).to(exchange).with(props.routingKey)
+        @Qualifier("ordersQueue") queue: Queue,
+        exchange: TopicExchange
+    ): Binding = BindingBuilder.bind(queue).to(exchange).with(props.routingKeyOrder)
 
     @Bean
-    fun jacksonMessageConverter(objectMapper: ObjectMapper): MessageConverter = Jackson2JsonMessageConverter(objectMapper)
+    fun paymentsBinding(
+        @Qualifier("paymentsQueue") queue: Queue,
+        exchange: TopicExchange
+    ): Binding = BindingBuilder.bind(queue).to(exchange).with(props.routingKeyPayment)
+
+    @Bean
+    fun jacksonMessageConverter(objectMapper: ObjectMapper): MessageConverter =
+        Jackson2JsonMessageConverter(objectMapper)
 
     @Bean
     fun rabbitTemplate(messageConverter: MessageConverter): RabbitTemplate =
@@ -48,15 +55,12 @@ class RabbitConfig(
         SimpleRabbitListenerContainerFactory().apply {
             setConnectionFactory(connectionFactory)
             setMessageConverter(messageConverter)
-
             setBatchListener(true)
             setConsumerBatchEnabled(true)
-
             setBatchSize(propsListener.batchSize)
             setPrefetchCount(propsListener.prefetch)
             setConcurrentConsumers(propsListener.concurrency)
             setMaxConcurrentConsumers(propsListener.maxConcurrency)
-
             setAcknowledgeMode(AcknowledgeMode.AUTO)
             setReceiveTimeout(propsListener.receiveTimeoutMs)
         }

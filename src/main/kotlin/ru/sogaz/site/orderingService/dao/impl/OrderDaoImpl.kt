@@ -7,44 +7,43 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import ru.sogaz.site.orderingService.dao.OrderDao
 import ru.sogaz.site.orderingService.dto.OrderPayloadDto
+import ru.sogaz.site.orderingService.dto.PaymentCreatedEvent
+import ru.sogaz.site.orderingService.dto.PaymentData
 import ru.sogaz.site.orderingService.entity.OrderEntity
 import ru.sogaz.site.orderingService.entity.SubOrderEntity
 import ru.sogaz.site.orderingService.loggerFor
+import ru.sogaz.site.orderingService.properties.RabbitProps
 import ru.sogaz.site.orderingService.repository.OrderRepository
 import ru.sogaz.site.orderingService.repository.SubOrderRepository
 import java.math.BigDecimal
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.UUID
+
 @Service
 class OrderDaoImpl(
     private val orderRepository: OrderRepository,
     private val subOrderRepository: SubOrderRepository,
-    @PersistenceContext private val em: EntityManager
+    @PersistenceContext private val em: EntityManager,
+    private val props: RabbitProps
 ) : OrderDao {
-
     companion object {
-        const val SUCCESSFUL_QUEUE_PROCESSING =
-            "Обработка записи из очереди успешно произведена: routingKey=%s, author=%s, eventTime=%s"
-        const val BATCH_SUMMARY = "Итог обработки пачки: количество=%d, длительность(мс)=%d"
-        const val BATCH_FAILED  = "Сбой обработки пачки на orderId=%s, причина=%s"
+        const val BATCH_FAILED = "Сбой обработки пачки на orderId=%s, причина=%s"
     }
 
-    private val logger = loggerFor(javaClass)
+    private val log = loggerFor(javaClass)
 
-    @Transactional
-    override fun upsertBatch(batch: List<OrderPayloadDto>) {
-        val startedNs = System.nanoTime()
-        var currentOrderId: String? = null
-
+    @Transactional(rollbackFor = [Exception::class])
+    override fun upsertBatch(batch: List<OrderPayloadDto>): List<PaymentCreatedEvent> {
+        val nowIso = OffsetDateTime.now(ZoneOffset.UTC).toString()
+        var currentOrderId = ""
         try {
             val newOrders = ArrayList<OrderEntity>(batch.size)
             val allSubs = ArrayList<SubOrderEntity>(batch.sumOf { it.subOrders.size })
+            val ordersMap = HashMap<UUID, OrderEntity>(batch.size)
 
             for (dto in batch) {
                 currentOrderId = dto.orderId
-
-                val meta = dto.metaInfo.lastOrNull()
-                logger.info(SUCCESSFUL_QUEUE_PROCESSING.format(meta?.routingKey, meta?.author, meta?.eventTimeIso))
-
                 val order = OrderEntity().apply {
                     setIdFromExternal(UUID.fromString(dto.orderId))
                     recipientEmail = dto.recipientEmail ?: ""
@@ -55,12 +54,12 @@ class OrderDaoImpl(
                     recurrent = dto.recurrent
                     paymentEndDate = dto.orderEndDate
                     recipientUserId = dto.recipientUserId
-                    premiumAmount = dto.subOrders
-                        .map { it.premiumAmount }
+                    val sum = dto.subOrders.map { it.premiumAmount }
                         .fold(BigDecimal.ZERO, BigDecimal::add)
-                        .takeIf { it > BigDecimal.ZERO }
+                    premiumAmount = sum.takeIf { it > BigDecimal.ZERO }
                 }
                 newOrders += order
+                ordersMap[order.id!!] = order
 
                 dto.subOrders.forEach { s ->
                     allSubs += SubOrderEntity(
@@ -77,18 +76,31 @@ class OrderDaoImpl(
                 }
             }
 
-            orderRepository.saveAll(newOrders)
+            if (newOrders.isNotEmpty()) orderRepository.saveAll(newOrders)
             em.flush()
-            subOrderRepository.saveAll(allSubs)
+            if (allSubs.isNotEmpty()) subOrderRepository.saveAll(allSubs)
 
+            return ordersMap.values.map { ord ->
+                PaymentCreatedEvent(
+                    timestamp = nowIso,
+                    eventType = props.routingKeyPayment, // если это field для eventType
+                    data = PaymentData(
+                        recurrent = ord.recurrent ?: false,
+                        orderId = ord.id!!,
+                        premiumAmount = ord.premiumAmount,
+                        saveCard = ord.saveCard,
+                        keyCard = ord.keyCard,
+                        recipientEmail = ord.recipientEmail,
+                        recipientPhone = ord.recipientPhone,
+                        dateCreate = ord.updateDate?.atOffset(ZoneOffset.UTC)?.toString(),
+                        dateEnd = ord.paymentEndDate?.atOffset(ZoneOffset.UTC)?.toString()
+                    )
+                )
+            }
         } catch (ex: Exception) {
-//            фикс на каком currentOrderId все повалилось и причина
-            logger.error(BATCH_FAILED.format(currentOrderId, ex.message))
-                // ex для отката транзакции
-            throw ex
-        } finally {
-            val durationMs = (System.nanoTime() - startedNs) / 1_000_000
-            logger.info(BATCH_SUMMARY.format(batch.size, durationMs))
+            log.error(BATCH_FAILED.format(currentOrderId, ex.message))
+            throw ex // ОБЯЗАТЕЛЬНО пробрасываем, чтобы был rollback и не было ACK
         }
     }
+
 }
