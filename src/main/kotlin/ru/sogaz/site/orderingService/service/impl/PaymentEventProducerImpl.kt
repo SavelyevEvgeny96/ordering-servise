@@ -2,6 +2,7 @@ package ru.sogaz.site.orderingService.service.impl
 
 import org.springframework.amqp.rabbit.connection.CorrelationData
 import org.springframework.amqp.rabbit.core.RabbitTemplate
+import org.springframework.stereotype.Service
 import ru.sogaz.site.orderingService.dto.PaymentCreatedEvent
 import ru.sogaz.site.orderingService.dto.PublishResult
 import ru.sogaz.site.orderingService.properties.RabbitProps
@@ -10,6 +11,7 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
+@Service
 class PaymentEventProducerImpl(
     private val rabbit: RabbitTemplate,
     private val props: RabbitProps

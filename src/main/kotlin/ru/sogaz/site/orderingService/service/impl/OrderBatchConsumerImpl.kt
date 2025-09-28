@@ -22,7 +22,7 @@ class OrderBatchConsumerImpl(
 
     private val logger = loggerFor(javaClass)
 
-    @RabbitListener(queues = ["\${app.rabbit.queue}"], containerFactory = "batchContainerFactory")
+    @RabbitListener(queues = ["\${app.rabbit.queue-order}"], containerFactory = "batchContainerFactory")
     fun handleBatch(payloads: List<OrderPayloadDto>) {
         val started = System.nanoTime()
 
