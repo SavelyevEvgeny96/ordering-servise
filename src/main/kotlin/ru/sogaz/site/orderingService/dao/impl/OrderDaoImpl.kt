@@ -29,23 +29,34 @@ class OrderDaoImpl(
 ) : OrderDao {
     companion object {
         const val BATCH_FAILED = "Сбой обработки пачки на orderId=%s, причина=%s"
+        const val DUPLICATE = "Дубликат orderId в пачке, пропускаем: %s"
     }
 
-    private val log = loggerFor(javaClass)
+    private val logger = loggerFor(javaClass)
 
     @Transactional(rollbackFor = [Exception::class])
     override fun upsertBatch(batch: List<OrderPayloadDto>): List<PaymentCreatedEvent> {
         val nowIso = OffsetDateTime.now(ZoneOffset.UTC).toString()
         var currentOrderId = ""
         try {
+            val seenOrderIds = HashSet<UUID>()
+            val ordersById = LinkedHashMap<UUID, OrderEntity>()
             val newOrders = ArrayList<OrderEntity>(batch.size)
             val allSubs = ArrayList<SubOrderEntity>(batch.sumOf { it.subOrders.size })
-            val ordersMap = HashMap<UUID, OrderEntity>(batch.size)
 
             for (dto in batch) {
                 currentOrderId = dto.orderId
+                val id = UUID.fromString(dto.orderId)
+
+                // если дубль — пропускаем целиком
+                if (!seenOrderIds.add(id)) {
+                    logger.info(DUPLICATE.format(id))
+                    continue
+                }
+
+                // создаём единый экземпляр OrderEntity для этого id
                 val order = OrderEntity().apply {
-                    setIdFromExternal(UUID.fromString(dto.orderId))
+                    setIdFromExternal(id)
                     recipientEmail = dto.recipientEmail ?: ""
                     recipientPhone = dto.recipientPhone ?: ""
                     recipientUserGdId = dto.recipientGdId
@@ -58,8 +69,9 @@ class OrderDaoImpl(
                         .fold(BigDecimal.ZERO, BigDecimal::add)
                     premiumAmount = sum.takeIf { it > BigDecimal.ZERO }
                 }
+
                 newOrders += order
-                ordersMap[order.id!!] = order
+                ordersById[id] = order
 
                 dto.subOrders.forEach { s ->
                     allSubs += SubOrderEntity(
@@ -80,10 +92,11 @@ class OrderDaoImpl(
             em.flush()
             if (allSubs.isNotEmpty()) subOrderRepository.saveAll(allSubs)
 
-            return ordersMap.values.map { ord ->
+            // события — одно на заказ (без полисных полей), только по уникальным orderId
+            return ordersById.values.map { ord ->
                 PaymentCreatedEvent(
                     timestamp = nowIso,
-                    eventType = props.routingKeyPayment, // если это field для eventType
+                    eventType = props.routingKeyPayment,
                     data = PaymentData(
                         recurrent = ord.recurrent ?: false,
                         orderId = ord.id!!,
@@ -98,8 +111,8 @@ class OrderDaoImpl(
                 )
             }
         } catch (ex: Exception) {
-            log.error(BATCH_FAILED.format(currentOrderId, ex.message))
-            throw ex // ОБЯЗАТЕЛЬНО пробрасываем, чтобы был rollback и не было ACK
+            logger.error(BATCH_FAILED.format(currentOrderId, ex.message))
+            throw ex // откат транзакции и отсутствие ACK
         }
     }
 
