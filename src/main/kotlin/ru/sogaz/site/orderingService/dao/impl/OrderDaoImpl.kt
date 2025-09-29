@@ -1,30 +1,19 @@
 package ru.sogaz.site.orderingService.dao.impl
 
-import jakarta.persistence.EntityManager
-import jakarta.persistence.PersistenceContext
-import jakarta.persistence.TransactionRequiredException
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import ru.sogaz.site.orderingService.dao.OrderDao
-import ru.sogaz.site.orderingService.dto.OrderPayloadDto
-import ru.sogaz.site.orderingService.dto.PaymentCreatedEvent
-import ru.sogaz.site.orderingService.dto.PaymentData
 import ru.sogaz.site.orderingService.entity.OrderEntity
-import ru.sogaz.site.orderingService.entity.SubOrderEntity
 import ru.sogaz.site.orderingService.loggerFor
-import ru.sogaz.site.orderingService.properties.RabbitProps
-import ru.sogaz.site.orderingService.repository.OrderRepository
-import ru.sogaz.site.orderingService.repository.SubOrderRepository
-import java.math.BigDecimal
 import java.sql.Timestamp
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
-import java.util.UUID
 
 @Service
 class OrderDaoImpl(
-    private val jdbcTemplate: JdbcTemplate) : OrderDao {
+    private val jdbcTemplate: JdbcTemplate
+) : OrderDao {
+
+    private val logger = loggerFor(javaClass)
+
     override fun upsertOrders(orders: List<OrderEntity>) {
         val sql = """
         INSERT INTO orders (
@@ -46,19 +35,32 @@ class OrderDaoImpl(
               update_date          = NOW()
     """.trimIndent()
 
-        jdbcTemplate.batchUpdate(sql, orders, orders.size) { ps, o ->
-            ps.setObject(1, o.orderId)
-            ps.setTimestamp(2, o.createDate?.let { Timestamp.from(it) })
-            ps.setString(3, o.recipientEmail)
-            ps.setString(4, o.recipientPhone)
-            ps.setBigDecimal(5, o.premiumAmount)
-            ps.setTimestamp(6, o.paymentEndDate?.let { Timestamp.from(it) })
-            ps.setString(7, o.keyCard)
-            ps.setObject(8, o.saveCard)
-            ps.setObject(9, o.recurrent)
-            ps.setString(10, o.recipientUserGdId)
-            ps.setString(11, o.recipientUserId)
-        }
-    }
+        logger.info("👉 Старт batch upsertOrders: size=${orders.size}")
 
+        jdbcTemplate.dataSource!!.connection.use { conn ->
+            conn.autoCommit = false
+            conn.prepareStatement(sql).use { ps ->
+                for (o in orders) {
+                    ps.setObject(1, o.orderId)
+                    ps.setTimestamp(2, o.createDate?.let { Timestamp.from(it) })
+                    ps.setString(3, o.recipientEmail)
+                    ps.setString(4, o.recipientPhone)
+                    ps.setBigDecimal(5, o.premiumAmount)
+                    ps.setTimestamp(6, o.paymentEndDate?.let { Timestamp.from(it) })
+                    ps.setString(7, o.keyCard)
+                    ps.setObject(8, o.saveCard)
+                    ps.setObject(9, o.recurrent)
+                    ps.setString(10, o.recipientUserGdId)
+                    ps.setString(11, o.recipientUserId)
+                    ps.addBatch()
+                }
+                logger.info("👉 Выполняем executeBatch() для ${orders.size} записей")
+                ps.executeBatch()
+            }
+            logger.info("✅ Выполнен executeBatch(), коммитим транзакцию")
+            conn.commit()
+        }
+
+        logger.info("✅ Завершён upsertOrders: size=${orders.size}")
+    }
 }

@@ -7,57 +7,84 @@ import ru.sogaz.site.orderingService.dto.PaymentCreatedEvent
 import ru.sogaz.site.orderingService.dto.PublishResult
 import ru.sogaz.site.orderingService.properties.RabbitProps
 import ru.sogaz.site.orderingService.service.PaymentEventProducer
+import ru.sogaz.site.orderingService.loggerFor
 import java.util.UUID
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class PaymentEventProducerImpl(
     private val rabbit: RabbitTemplate,
     private val props: RabbitProps
 ) : PaymentEventProducer {
-    override fun sendBatch(events: List<PaymentCreatedEvent>): PublishResult {
-        val cds = mutableListOf<CorrelationData>()
 
-        // 1) публикуем на ОДНОМ канале (быстро), каждому сообщению даём CorrelationData с id=orderId
-        rabbit.invoke { ops ->
-            events.forEach { ev ->
-                val orderIdStr = ev.data.orderId.toString()
-                val cd = CorrelationData(orderIdStr)     // это id попадёт в confirm.future
-                ops.convertAndSend(
-                    props.exchange,
-                    ev.eventType,
-                    ev,
-                    { msg ->
-                        msg.messageProperties.correlationId = orderIdStr
-                        msg
-                    },
-                    cd
-                )
-                cds += cd
+    companion object {
+        private const val CONFIRMED_LOG = " Сообщение подтверждено брокером: orderId=%s"
+        private const val N_ACK_LOG = " Сообщение отклонено брокером: orderId=%s, причина=%s"
+        private const val RETURNED_LOG = " Сообщение возвращено брокером: %s, reply=%s"
+        private const val PUBLISHED_LOG = " Отправлено событие: orderId=%s, routingKey=%s"
+        private const val NO_CONFIRM_LOG = " Нет подтверждения на данный момент: orderId=%s"
+    }
+
+    private val logger = loggerFor(javaClass)
+
+    private val confirmed = ConcurrentHashMap<UUID, Boolean>()
+    private val errors = ConcurrentHashMap<UUID, String?>()
+
+    init {
+        rabbit.setConfirmCallback { correlation, ack, cause ->
+            val id = correlation?.id ?: return@setConfirmCallback
+            val orderId = UUID.fromString(id)
+
+            if (ack) {
+                confirmed[orderId] = true
+                logger.debug(CONFIRMED_LOG.format(orderId))
+            } else {
+                errors[orderId] = cause
+                logger.error(N_ACK_LOG.format(orderId, cause))
             }
-
         }
 
-        // 2) собираем результаты по каждому сообщению
+        rabbit.setReturnsCallback { returned ->
+            logger.error(RETURNED_LOG.format(returned.message, returned.replyText))
+        }
+    }
+
+    override fun sendBatch(events: List<PaymentCreatedEvent>?): PublishResult {
+        if (events.isNullOrEmpty()) {
+            return PublishResult(emptySet(), emptyMap(), emptySet())
+        }
+
         val acked = mutableSetOf<UUID>()
         val nAcked = mutableMapOf<UUID, String?>()
-        val timeouts = mutableSetOf<UUID>()
 
-        cds.forEach { cd ->
-            val orderId = UUID.fromString(cd.id)
-            try {
-                // Ждём подтверждение по конкретному сообщению
-                val confirm = cd.future.get(10, TimeUnit.SECONDS)
-                if (confirm.isAck) {
-                    acked += orderId
-                } else {
-                    nAcked[orderId] = confirm.reason
-                }
-            } catch (e: TimeoutException) {
-                timeouts += orderId
+        events.forEach { ev ->
+            val orderId = ev.data.orderId
+            val cd = CorrelationData(orderId.toString())
+
+            rabbit.convertAndSend(
+                props.exchange,
+                ev.eventType,
+                ev,
+                { msg ->
+                    msg.messageProperties.correlationId = orderId.toString()
+                    msg
+                },
+                cd
+            )
+            logger.debug(PUBLISHED_LOG.format(orderId, ev.eventType))
+        }
+
+        events.forEach { ev ->
+            val orderId = ev.data.orderId
+            if (confirmed.remove(orderId) == true) {
+                acked += orderId
+            } else if (errors.containsKey(orderId)) {
+                nAcked[orderId] = errors.remove(orderId)
+            } else {
+                logger.warn(NO_CONFIRM_LOG.format(orderId))
             }
         }
-        return PublishResult(acked, nAcked, timeouts)
+
+        return PublishResult(acked, nAcked, emptySet())
     }
 }

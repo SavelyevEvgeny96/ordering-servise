@@ -1,5 +1,6 @@
 package ru.sogaz.site.orderingService.config
-
+import org.springframework.util.ErrorHandler
+import org.springframework.amqp.rabbit.listener.ConditionalRejectingErrorHandler
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.amqp.core.*
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory
@@ -49,7 +50,16 @@ class RabbitConfig(
         RabbitTemplate(connectionFactory).apply {
             this.messageConverter = messageConverter
         }
+    @Bean
+    fun errorHandler(): ErrorHandler {
+        return ConditionalRejectingErrorHandler(object : ConditionalRejectingErrorHandler.DefaultExceptionStrategy() {
+            override fun isFatal(t: Throwable): Boolean {
 
+                t.printStackTrace()
+                return super.isFatal(t)
+            }
+        })
+    }
     @Bean("batchContainerFactory")
     fun batchContainerFactory(messageConverter: MessageConverter): SimpleRabbitListenerContainerFactory =
         SimpleRabbitListenerContainerFactory().apply {
@@ -57,11 +67,15 @@ class RabbitConfig(
             setMessageConverter(messageConverter)
             setBatchListener(true)
             setConsumerBatchEnabled(true)
+            setDeBatchingEnabled(false)
+            setConsumerBatchEnabled(true)
             setBatchSize(propsListener.batchSize)
             setPrefetchCount(propsListener.prefetch)
             setConcurrentConsumers(propsListener.concurrency)
             setMaxConcurrentConsumers(propsListener.maxConcurrency)
-            setAcknowledgeMode(AcknowledgeMode.AUTO)
-            setReceiveTimeout(propsListener.receiveTimeoutMs)
+            setAcknowledgeMode(AcknowledgeMode.MANUAL)
+            setChannelTransacted(true)
+            setDefaultRequeueRejected(false)
+            setErrorHandler(errorHandler())
         }
 }

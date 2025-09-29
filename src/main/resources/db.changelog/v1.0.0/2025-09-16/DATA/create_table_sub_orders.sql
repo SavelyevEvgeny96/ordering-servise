@@ -14,5 +14,3 @@ CREATE TABLE sub_orders (
     update_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),  -- Дата обновления, автоматически заполняется
    FOREIGN KEY (order_id) REFERENCES orders(order_id) -- Связь с айди заказа
 );
--- индекс для скорости выборок по заказу
-CREATE INDEX idx_sub_orders_order_id ON sub_orders(order_id);

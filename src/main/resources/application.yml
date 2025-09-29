@@ -9,14 +9,6 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/ordering?reWriteBatchedInserts=true}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:123456}
-    hikari:
-      maximum-pool-size: 12          # подгони под concurrency
-      minimum-idle: 4
-      connection-timeout: 20000      # мс
-      idle-timeout: 600000           # мс
-      max-lifetime: 1700000          # мс (~28 мин; немного меньше, чем у PG/балансера)
-      data-source-properties:
-        reWriteBatchedInserts: true
   jpa:
     open-in-view: false
     properties:
@@ -57,11 +49,8 @@ app:
     routing-key-payment: ${ROUTING_KEY_PAYMENTS_CREATED:payments.created}
     listener:
       batch-size: 100
-      prefetch: 200
+      prefetch: 100
       concurrency: 3
-      max-concurrency: 8
-      receive-timeout-ms: 500
-
   info:
     application_name: @project.name@
     version: @project.version@
@@ -101,6 +90,12 @@ logging:
       sogaz:
         site:
           pattern: ${LOGGING_LEVEL_RU_SOGAZ_ESB:DEBUG}
+#logging:
+#  level:
+#    org.springframework.jdbc: DEBUG
+#    org.springframework.transaction: DEBUG
+#    org.springframework.amqp.rabbit.*: DEBUG
+
 
 logstash:
   host: ${LOG_SERVER_HOST:localhost}
