@@ -19,9 +19,10 @@ import java.time.ZoneOffset
 import java.util.*
 import kotlin.collections.HashSet
 
-@Service
+
 class BuildBatchConsumerServiceImpl(
-    private val orderDao: OrderDao, private val subOrderDao: SubOrderDao,
+    private val orderDao: OrderDao,
+    private val subOrderDao: SubOrderDao,
     private val props: RabbitProps
 ) :
     BuildBatchConsumerService {
