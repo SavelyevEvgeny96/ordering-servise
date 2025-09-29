@@ -12,5 +12,5 @@ CREATE TABLE orders (
     recipient_email VARCHAR(255) NOT NULL,          -- Электронная почта страхователя
     recipient_phone VARCHAR(255) NOT NULL,          -- Мобильный телефон страхователя
     recipient_user_id VARCHAR(255),                 -- Идентификатор личного кабинета страхователя
-    create_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Дата создания, автоматически заполняется
-    update_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP)  -- Дата обновления, автоматически заполняется
+   create_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), -- Дата создания, автоматически заполняется
+   update_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now())  -- Дата обновления, автоматически заполняется

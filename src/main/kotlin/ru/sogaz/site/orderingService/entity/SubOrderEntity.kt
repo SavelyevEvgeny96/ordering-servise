@@ -20,7 +20,7 @@ import java.util.UUID
 data class SubOrderEntity(
     @Id
     @Column(name = "sub_order_id", columnDefinition = "uuid")
-    var id: UUID = UUID.randomUUID(),
+    var id: UUID? = null,
     @ManyToOne
     @JoinColumn(name = "order_id", referencedColumnName = "order_id", nullable = false)
     var orderEntity: OrderEntity? = null,
@@ -42,10 +42,10 @@ data class SubOrderEntity(
     var premiumAmount: BigDecimal? = null,
     @Column(name = "manager_email")
     var managerEmail: String? = null,
-    @CreationTimestamp
+
     @Column(name = "create_date", updatable = false)
     var createDate: Instant? = null,
-    @UpdateTimestamp
+
     @Column(name = "update_date")
     var updateDate: Instant? = null,
 )

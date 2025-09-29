@@ -1,0 +1,41 @@
+package ru.sogaz.site.orderingService.dao.impl
+
+import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.stereotype.Service
+import ru.sogaz.site.orderingService.dao.SubOrderDao
+import ru.sogaz.site.orderingService.entity.SubOrderEntity
+
+@Service
+class SubOrderDaoImpl(private val jdbcTemplate: JdbcTemplate) : SubOrderDao {
+    override fun upsertSubOrders(subs: List<SubOrderEntity>) {
+        val sql = """
+               INSERT INTO sub_orders (
+            order_id, policy_id, policy_number, contract_id, contract_number,
+            insurance_program, type_insurance, premium_amount, manager_email
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (policy_id) DO UPDATE
+          SET policy_number     = EXCLUDED.policy_number,
+              contract_id       = EXCLUDED.contract_id,
+              policy_id         = EXCLUDED.policy_id,
+              contract_number   = EXCLUDED.contract_number,
+              insurance_program = EXCLUDED.insurance_program,
+              type_insurance    = EXCLUDED.type_insurance,
+              premium_amount    = EXCLUDED.premium_amount,
+              manager_email     = EXCLUDED.manager_email,
+              order_id          = EXCLUDED.order_id;
+    """.trimIndent()
+
+        jdbcTemplate.batchUpdate(sql, subs, subs.size) { ps, s ->
+            ps.setObject(1, s.orderEntity?.orderId)
+            ps.setString(2, s.policyId)
+            ps.setString(3, s.policyNumber)
+            ps.setString(4, s.contractId)
+            ps.setString(5, s.contractNumber)
+            ps.setString(6, s.insuranceProgram)
+            ps.setString(7, s.typeInsurance)
+            ps.setBigDecimal(8, s.premiumAmount)
+            ps.setString(9, s.managerEmail)
+        }
+    }
+}
