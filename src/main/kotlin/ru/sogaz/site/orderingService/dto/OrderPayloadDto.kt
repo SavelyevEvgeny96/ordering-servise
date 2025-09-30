@@ -16,7 +16,7 @@ data class OrderPayloadDto(
     val recipientPhone: String?, // телефон страхователя
     val recipientUserId: String?, // ID личного кабинета
     val recipientGdId: String?, // золотой ID
-    val recurrent: Boolean = false, // рекуррентный платёж?
+    val recurrent: Boolean = false, // рекуррентный платёж
     val keyCard: String?, // ключ карты (если recurrent=true)
     val saveCard: Boolean? = null, // сохранять карту?
     val managerEmail: String?, // менеджер по заказу

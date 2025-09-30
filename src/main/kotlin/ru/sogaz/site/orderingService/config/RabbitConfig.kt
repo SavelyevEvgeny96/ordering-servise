@@ -50,16 +50,7 @@ class RabbitConfig(
         RabbitTemplate(connectionFactory).apply {
             this.messageConverter = messageConverter
         }
-    @Bean
-    fun errorHandler(): ErrorHandler {
-        return ConditionalRejectingErrorHandler(object : ConditionalRejectingErrorHandler.DefaultExceptionStrategy() {
-            override fun isFatal(t: Throwable): Boolean {
 
-                t.printStackTrace()
-                return super.isFatal(t)
-            }
-        })
-    }
     @Bean("batchContainerFactory")
     fun batchContainerFactory(messageConverter: MessageConverter): SimpleRabbitListenerContainerFactory =
         SimpleRabbitListenerContainerFactory().apply {
@@ -76,6 +67,5 @@ class RabbitConfig(
             setAcknowledgeMode(AcknowledgeMode.MANUAL)
             setChannelTransacted(true)
             setDefaultRequeueRejected(false)
-            setErrorHandler(errorHandler())
         }
 }

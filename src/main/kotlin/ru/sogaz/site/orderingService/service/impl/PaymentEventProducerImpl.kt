@@ -11,8 +11,8 @@ import ru.sogaz.site.orderingService.loggerFor
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-@Service
-class PaymentEventProducerImpl(
+
+ class PaymentEventProducerImpl(
     private val rabbit: RabbitTemplate,
     private val props: RabbitProps
 ) : PaymentEventProducer {

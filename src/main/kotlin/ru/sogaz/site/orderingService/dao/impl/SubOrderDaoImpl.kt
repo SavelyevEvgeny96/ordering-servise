@@ -7,7 +7,7 @@ import ru.sogaz.site.orderingService.dao.SubOrderDao
 import ru.sogaz.site.orderingService.entity.SubOrderEntity
 import ru.sogaz.site.orderingService.loggerFor
 
-@Service
+
 class SubOrderDaoImpl(
     private val jdbcTemplate: JdbcTemplate
 ) : SubOrderDao {

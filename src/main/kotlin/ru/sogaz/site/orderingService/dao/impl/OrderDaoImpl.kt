@@ -8,7 +8,7 @@ import ru.sogaz.site.orderingService.entity.OrderEntity
 import ru.sogaz.site.orderingService.loggerFor
 import java.sql.Timestamp
 
-@Service
+
 class OrderDaoImpl(
     private val jdbcTemplate: JdbcTemplate
 ) : OrderDao {

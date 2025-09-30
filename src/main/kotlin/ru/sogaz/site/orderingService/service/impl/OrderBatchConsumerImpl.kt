@@ -11,8 +11,8 @@ import ru.sogaz.site.orderingService.service.BuildBatchConsumerService
 import ru.sogaz.site.orderingService.service.OrderBatchConsumer
 import ru.sogaz.site.orderingService.service.PaymentEventProducer
 
-@Service
-class OrderBatchConsumerImpl(
+
+ class OrderBatchConsumerImpl(
     private val buildBatchConsumerService: BuildBatchConsumerService,
     private val paymentProducer: PaymentEventProducer,
     private val messageConverter: MessageConverter
@@ -23,6 +23,7 @@ class OrderBatchConsumerImpl(
             "Обработка записи из очереди успешно произведена: routingKey=%s, author=%s, eventTime=%s"
         private const val BATCH_SUMMARY =
             "Итог обработки пачки: количество=%d, длительность(мс)=%d"
+        private const val ACK_SUCCESSFUL = "ACK отправлен для deliveryTag=%d\", size=%d"
     }
 
     private val logger = loggerFor(javaClass)
@@ -45,7 +46,7 @@ class OrderBatchConsumerImpl(
             val events = buildBatchConsumerService.upsertBatch(payloads)
 
             // 2) публикация и логирование — уже после успешного коммита
-           paymentProducer.sendBatch(events)
+            paymentProducer.sendBatch(events)
 
             val metaByOrderId = payloads.associateBy(
                 keySelector = { it.orderId },
@@ -66,15 +67,15 @@ class OrderBatchConsumerImpl(
             val tookMs = (System.nanoTime() - started) / 1_000_000
             logger.info(BATCH_SUMMARY.format(payloads.size, tookMs))
 
-            // ✅ подтверждаем пачку
+            //  подтверждаем пачку
             channel.basicAck(deliveryTag, true)
-            logger.debug("ACK отправлен для deliveryTag=$deliveryTag, size=${payloads.size}")
+            logger.debug(ACK_SUCCESSFUL.format(deliveryTag, payloads.size))
         } catch (ex: Exception) {
             logger.error("Ошибка при обработке пачки: ${ex.message}")
 
-            // ❌ возвращаем пачку в очередь
+            //  возвращаем пачку в очередь
             channel.basicNack(deliveryTag, true, true)
-            logger.debug("NACK отправлен для deliveryTag=$deliveryTag, size=${payloads.size}")
+            logger.debug("N_ACK отправлен для deliveryTag=$deliveryTag, size=${payloads.size}")
 
             throw ex
         }

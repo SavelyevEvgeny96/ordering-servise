@@ -20,7 +20,7 @@ import java.util.*
 import kotlin.collections.HashSet
 
 
-class BuildBatchConsumerServiceImpl(
+open class BuildBatchConsumerServiceImpl(
     private val orderDao: OrderDao,
     private val subOrderDao: SubOrderDao,
     private val props: RabbitProps
