@@ -6,7 +6,7 @@ import java.util.UUID
 data class PaymentCreatedEvent(
     val eventType: String,
     val timestamp: String,
-    val data: PaymentData
+    val data: PaymentData,
 )
 
 data class PaymentData(
@@ -18,5 +18,5 @@ data class PaymentData(
     val recipientEmail: String?,
     val recipientPhone: String?,
     val dateCreate: String?,
-    val dateEnd: String?
+    val dateEnd: String?,
 )

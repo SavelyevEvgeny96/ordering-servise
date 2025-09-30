@@ -2,21 +2,18 @@ package ru.sogaz.site.orderingService.service.impl
 
 import org.springframework.amqp.rabbit.connection.CorrelationData
 import org.springframework.amqp.rabbit.core.RabbitTemplate
-import org.springframework.stereotype.Service
 import ru.sogaz.site.orderingService.dto.PaymentCreatedEvent
 import ru.sogaz.site.orderingService.dto.PublishResult
+import ru.sogaz.site.orderingService.loggerFor
 import ru.sogaz.site.orderingService.properties.RabbitProps
 import ru.sogaz.site.orderingService.service.PaymentEventProducer
-import ru.sogaz.site.orderingService.loggerFor
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-
- class PaymentEventProducerImpl(
+class PaymentEventProducerImpl(
     private val rabbit: RabbitTemplate,
-    private val props: RabbitProps
+    private val props: RabbitProps,
 ) : PaymentEventProducer {
-
     companion object {
         private const val CONFIRMED_LOG = " Сообщение подтверждено брокером: orderId=%s"
         private const val N_ACK_LOG = " Сообщение отклонено брокером: orderId=%s, причина=%s"
@@ -69,7 +66,7 @@ import java.util.concurrent.ConcurrentHashMap
                     msg.messageProperties.correlationId = orderId.toString()
                     msg
                 },
-                cd
+                cd,
             )
             logger.debug(PUBLISHED_LOG.format(orderId, ev.eventType))
         }

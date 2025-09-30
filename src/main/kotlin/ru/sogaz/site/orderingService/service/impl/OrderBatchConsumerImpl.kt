@@ -4,20 +4,17 @@ import com.rabbitmq.client.Channel
 import org.springframework.amqp.core.Message
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.support.converter.MessageConverter
-import org.springframework.stereotype.Service
 import ru.sogaz.site.orderingService.dto.OrderPayloadDto
 import ru.sogaz.site.orderingService.loggerFor
 import ru.sogaz.site.orderingService.service.BuildBatchConsumerService
 import ru.sogaz.site.orderingService.service.OrderBatchConsumer
 import ru.sogaz.site.orderingService.service.PaymentEventProducer
 
-
- class OrderBatchConsumerImpl(
+class OrderBatchConsumerImpl(
     private val buildBatchConsumerService: BuildBatchConsumerService,
     private val paymentProducer: PaymentEventProducer,
-    private val messageConverter: MessageConverter
+    private val messageConverter: MessageConverter,
 ) : OrderBatchConsumer {
-
     companion object {
         private const val SUCCESSFUL_QUEUE_PROCESSING =
             "Обработка записи из очереди успешно произведена: routingKey=%s, author=%s, eventTime=%s"
@@ -30,15 +27,19 @@ import ru.sogaz.site.orderingService.service.PaymentEventProducer
 
     @RabbitListener(
         queues = ["\${app.rabbit.queue-order}"],
-        containerFactory = "batchContainerFactory"
+        containerFactory = "batchContainerFactory",
     )
-    override fun handleBatch(messages: List<Message>, channel: Channel) {
+    override fun handleBatch(
+        messages: List<Message>,
+        channel: Channel,
+    ) {
         val deliveryTag = messages.last().messageProperties.deliveryTag
 
         // конвертим в DTO
-        val payloads = messages.map {
-            messageConverter.fromMessage(it) as OrderPayloadDto
-        }
+        val payloads =
+            messages.map {
+                messageConverter.fromMessage(it) as OrderPayloadDto
+            }
         val started = System.nanoTime()
 
         try {
@@ -48,10 +49,11 @@ import ru.sogaz.site.orderingService.service.PaymentEventProducer
             // 2) публикация и логирование — уже после успешного коммита
             paymentProducer.sendBatch(events)
 
-            val metaByOrderId = payloads.associateBy(
-                keySelector = { it.orderId },
-                valueTransform = { it.metaInfo.lastOrNull() }
-            )
+            val metaByOrderId =
+                payloads.associateBy(
+                    keySelector = { it.orderId },
+                    valueTransform = { it.metaInfo.lastOrNull() },
+                )
 
             events.forEach { ev ->
                 val meta = metaByOrderId[ev.data.orderId.toString()]
@@ -59,8 +61,8 @@ import ru.sogaz.site.orderingService.service.PaymentEventProducer
                     SUCCESSFUL_QUEUE_PROCESSING.format(
                         meta?.routingKey,
                         meta?.author,
-                        meta?.eventTimeIso
-                    )
+                        meta?.eventTimeIso,
+                    ),
                 )
             }
 

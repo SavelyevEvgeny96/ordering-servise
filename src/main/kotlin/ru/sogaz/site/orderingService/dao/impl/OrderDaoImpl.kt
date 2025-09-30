@@ -1,18 +1,14 @@
 package ru.sogaz.site.orderingService.dao.impl
 
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import ru.sogaz.site.orderingService.dao.OrderDao
 import ru.sogaz.site.orderingService.entity.OrderEntity
 import ru.sogaz.site.orderingService.loggerFor
 import java.sql.Timestamp
 
-
 class OrderDaoImpl(
-    private val jdbcTemplate: JdbcTemplate
+    private val jdbcTemplate: JdbcTemplate,
 ) : OrderDao {
-
     companion object {
         private const val LOG_START = "Старт batch upsertOrders: size=%d"
         private const val LOG_EXECUTE = "Выполняем batchUpdate() для %d записей"
@@ -21,9 +17,9 @@ class OrderDaoImpl(
 
     private val logger = loggerFor(javaClass)
 
-
     override fun upsertOrders(orders: List<OrderEntity>) {
-        val sql = """
+        val sql =
+            """
             INSERT INTO orders (
                 order_id, create_date, recipient_email, recipient_phone,
                 premium_amount, payment_end_date, key_card, save_card,
@@ -41,7 +37,7 @@ class OrderDaoImpl(
                   recipient_user_gd_id = EXCLUDED.recipient_user_gd_id,
                   recipient_user_id    = EXCLUDED.recipient_user_id,
                   update_date          = NOW()
-        """.trimIndent()
+            """.trimIndent()
 
         logger.info(LOG_START.format(orders.size))
 

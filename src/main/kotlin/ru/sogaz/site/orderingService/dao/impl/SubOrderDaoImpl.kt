@@ -1,17 +1,13 @@
 package ru.sogaz.site.orderingService.dao.impl
 
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import ru.sogaz.site.orderingService.dao.SubOrderDao
 import ru.sogaz.site.orderingService.entity.SubOrderEntity
 import ru.sogaz.site.orderingService.loggerFor
 
-
 class SubOrderDaoImpl(
-    private val jdbcTemplate: JdbcTemplate
+    private val jdbcTemplate: JdbcTemplate,
 ) : SubOrderDao {
-
     companion object {
         private const val LOG_START = "Старт batch upsertSubOrders: size=%d"
         private const val LOG_EXECUTE = "Выполняем batchUpdate() для %d записей"
@@ -20,9 +16,9 @@ class SubOrderDaoImpl(
 
     private val logger = loggerFor(javaClass)
 
-
     override fun upsertSubOrders(subs: List<SubOrderEntity>) {
-        val sql = """
+        val sql =
+            """
             INSERT INTO sub_orders (
                 order_id, policy_id, policy_number, contract_id, contract_number,
                 insurance_program, type_insurance, premium_amount, manager_email
@@ -38,7 +34,7 @@ class SubOrderDaoImpl(
                   premium_amount    = EXCLUDED.premium_amount,
                   manager_email     = EXCLUDED.manager_email,
                   order_id          = EXCLUDED.order_id;
-        """.trimIndent()
+            """.trimIndent()
 
         logger.info(LOG_START.format(subs.size))
 

@@ -13,7 +13,6 @@ class RabbitProps {
     var routingKeyOrder: String = "orders.created"
     var routingKeyPayment: String = "payments.created"
 
-
     @PostConstruct
     fun postConstruct() {
         logger.info("PostConstruct:")

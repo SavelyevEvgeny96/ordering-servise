@@ -16,30 +16,33 @@ import ru.sogaz.site.orderingService.service.impl.PaymentEventProducerImpl
 
 @Configuration
 class ServiceConfig {
-
     @Bean
     fun buildBatchConsumerConfig(
         orderDao: OrderDao,
         subOrderDao: SubOrderDao,
-        props: RabbitProps
+        props: RabbitProps,
     ): BuildBatchConsumerService =
         BuildBatchConsumerServiceImpl(
-            orderDao = orderDao, subOrderDao = subOrderDao,
-            props = props
+            orderDao = orderDao,
+            subOrderDao = subOrderDao,
+            props = props,
         )
 
     @Bean
     fun orderBatchConsumerConfig(
         buildBatchConsumerService: BuildBatchConsumerService,
         paymentProducer: PaymentEventProducer,
-        messageConverter: MessageConverter
-    ): OrderBatchConsumer = OrderBatchConsumerImpl(
-        buildBatchConsumerService = buildBatchConsumerService,
-        paymentProducer = paymentProducer, messageConverter = messageConverter
-    )
+        messageConverter: MessageConverter,
+    ): OrderBatchConsumer =
+        OrderBatchConsumerImpl(
+            buildBatchConsumerService = buildBatchConsumerService,
+            paymentProducer = paymentProducer,
+            messageConverter = messageConverter,
+        )
+
     @Bean
     fun paymentEventProducerConfig(
         rabbit: RabbitTemplate,
-        props: RabbitProps
+        props: RabbitProps,
     ): PaymentEventProducer = PaymentEventProducerImpl(rabbit = rabbit, props = props)
 }
