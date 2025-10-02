@@ -1,27 +1,44 @@
-package ru.sogaz.site.orderingService.mapper
+package ru.sogaz.site.orderingService.mappers
 
 import org.mapstruct.Mapper
 import org.mapstruct.Mapping
+import org.mapstruct.Named
 import ru.sogaz.site.orderingService.dto.OrderPayloadDto
 import ru.sogaz.site.orderingService.dto.SubOrderDto
 import ru.sogaz.site.orderingService.entity.OrderEntity
 import ru.sogaz.site.orderingService.entity.SubOrderEntity
-import java.time.Instant
+import java.math.BigDecimal
 import java.util.UUID
 
-@Mapper(componentModel = "spring", imports = [UUID::class, Instant::class])
-interface OrderMapper {
-
-    @Mapping(target = "orderId", expression = "java(UUID.fromString(dto.orderId))")
-    @Mapping(target = "recipientEmail", expression = "java(dto.getRecipientEmail() != null ? dto.getRecipientEmail() : \"\")")
-    @Mapping(target = "recipientPhone", expression = "java(dto.getRecipientPhone() != null ? dto.getRecipientPhone() : \"\")")
+@Mapper
+abstract class OrderMapper {
+    @Mapping(target = "orderId", source = "orderId", qualifiedByName = ["stringToUUID"])
+    @Mapping(target = "recipientEmail", source = "recipientEmail", qualifiedByName = ["nullToEmpty"])
+    @Mapping(target = "recipientPhone", source = "recipientPhone", qualifiedByName = ["nullToEmpty"])
     @Mapping(target = "paymentEndDate", source = "orderEndDate")
-    @Mapping(target = "createDate", expression = "java(Instant.now())")
-    fun toOrderEntity(dto: OrderPayloadDto): OrderEntity
+    @Mapping(target = "createDate", expression = "java(java.time.Instant.now())")
+    @Mapping(target = "premiumAmount", source = "subOrders", qualifiedByName = ["mapPremium"])
+    abstract fun toOrderEntity(dto: OrderPayloadDto): OrderEntity
 
     @Mapping(target = "orderEntity", source = "order")
     @Mapping(target = "managerEmail", source = "managerEmail")
-    fun toSubOrderEntity(dto: SubOrderDto, order: OrderEntity, managerEmail: String?): SubOrderEntity
+    abstract fun toSubOrderEntity(
+        dto: SubOrderDto,
+        order: OrderEntity,
+        managerEmail: String?,
+    ): SubOrderEntity
 
-    fun toSubOrderEntities(dtos: List<SubOrderDto>, order: OrderEntity, managerEmail: String?): List<SubOrderEntity>
+    // ----------------- Helpers -----------------
+    @Named("stringToUUID")
+    fun stringToUUID(orderId: String): UUID = UUID.fromString(orderId)
+
+    @Named("nullToEmpty")
+    fun nullToEmpty(value: String?): String = value ?: ""
+
+    @Named("mapPremium")
+    fun mapPremium(subOrders: List<SubOrderDto>?): BigDecimal? =
+        subOrders
+            ?.map { it.premiumAmountDto }
+            ?.fold(BigDecimal.ZERO, BigDecimal::add)
+            ?.takeIf { it > BigDecimal.ZERO }
 }

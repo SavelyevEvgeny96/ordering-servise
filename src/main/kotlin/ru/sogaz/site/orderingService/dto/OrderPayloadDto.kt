@@ -1,6 +1,5 @@
 package ru.sogaz.site.orderingService.dto
 
-import com.fasterxml.jackson.annotation.JsonFormat
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
@@ -20,7 +19,6 @@ data class OrderPayloadDto(
     val keyCard: String?, // ключ карты (если recurrent=true)
     val saveCard: Boolean? = null, // сохранять карту?
     val managerEmail: String?, // менеджер по заказу
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ssXXX")
     val orderEndDate: Instant?, // срок актуальности заказа
     val subOrders: List<SubOrderDto>, // список полисов внутри заказа
 )

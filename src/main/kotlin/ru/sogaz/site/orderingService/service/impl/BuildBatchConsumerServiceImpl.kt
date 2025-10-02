@@ -1,6 +1,5 @@
 package ru.sogaz.site.orderingService.service.impl
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.transaction.annotation.Transactional
 import ru.sogaz.site.orderingService.dao.OrderDao
 import ru.sogaz.site.orderingService.dao.SubOrderDao
@@ -10,23 +9,20 @@ import ru.sogaz.site.orderingService.dto.PaymentData
 import ru.sogaz.site.orderingService.entity.OrderEntity
 import ru.sogaz.site.orderingService.entity.SubOrderEntity
 import ru.sogaz.site.orderingService.loggerFor
-import ru.sogaz.site.orderingService.mapper.OrderMapper
+import ru.sogaz.site.orderingService.mappers.OrderMapper
 import ru.sogaz.site.orderingService.mappers.PaymentEventMapper
 import ru.sogaz.site.orderingService.properties.RabbitProps
 import ru.sogaz.site.orderingService.service.BuildBatchConsumerService
-import java.math.BigDecimal
-import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
-import kotlin.collections.HashSet
 
 open class BuildBatchConsumerServiceImpl(
     private val orderDao: OrderDao,
     private val subOrderDao: SubOrderDao,
     private val props: RabbitProps,
     private val orderMapper: OrderMapper,
-    private val paymentEventMapper: PaymentEventMapper
+    private val paymentEventMapper: PaymentEventMapper,
 ) : BuildBatchConsumerService {
     companion object {
         const val BATCH_FAILED = "Сбой обработки пачки на orderId=%s, причина=%s"
@@ -46,7 +42,7 @@ open class BuildBatchConsumerServiceImpl(
             if (orders.isNotEmpty()) orderDao.upsertOrders(orders)
             if (subs.isNotEmpty()) subOrderDao.upsertSubOrders(subs)
 
-            return paymentEventMapper.toPaymentEvents(orders, nowIso, props.routingKeyPayment)
+            return orders.map { paymentEventMapper.toPaymentEvent(it, nowIso, props.routingKeyPayment) }
         } catch (ex: Exception) {
             logger.error(BATCH_FAILED.format(currentOrderId, ex.message))
             throw ex // откат транзакции и отсутствие ACK
@@ -69,7 +65,7 @@ open class BuildBatchConsumerServiceImpl(
             val order = orderMapper.toOrderEntity(dto)
             orders += order
 
-            val subOrders = orderMapper.toSubOrderEntities(dto.subOrders, order, dto.managerEmail)
+            val subOrders = dto.subOrders.map { orderMapper.toSubOrderEntity(it, order, dto.managerEmail) }
             subs += subOrders
         }
 

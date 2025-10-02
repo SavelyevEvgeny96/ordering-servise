@@ -41,16 +41,19 @@ server:
   main.allow-bean-definition-overriding: true
 
 app:
-  rabbit:
-    exchange: ${ORDERS_EXCHANGE:orders.exchange}
-    queue-order: ${ORDER_CREATED_QUEUE:orders.created.queue}
-    queue-payment: ${PAYMENT_CREATED_QUEUE:payment.created.queue}
-    routing-key-order: ${ROUTING_KEY_ORDERS_CREATED:orders.created}
-    routing-key-payment: ${ROUTING_KEY_PAYMENTS_CREATED:payments.created}
-    listener:
-      batch-size: 100
-      prefetch: 100
-      concurrency: 3
+  app:
+    rabbit:
+      exchange: ${ORDERS_EXCHANGE:orders.exchange}
+      queue-order: ${ORDER_CREATED_QUEUE:orders.created.queue}
+      queue-order-dlq: ${ORDER_CREATED_QUEUE_DLQ:orders.created.queue.dlq} #DLQ
+      queue-payment: ${PAYMENT_CREATED_QUEUE:payment.created.queue}
+      routing-key-order: ${ROUTING_KEY_ORDERS_CREATED:orders.created}
+      routing-key-payment: ${ROUTING_KEY_PAYMENTS_CREATED:payments.created}
+      listener:
+        batch-size: 100
+        prefetch: 100
+        concurrency: 3
+        max-concurrency: 10
   info:
     application_name: @project.name@
     version: @project.version@

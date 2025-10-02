@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import ru.sogaz.site.orderingService.dao.OrderDao
 import ru.sogaz.site.orderingService.dao.SubOrderDao
+import ru.sogaz.site.orderingService.mappers.OrderMapper
+import ru.sogaz.site.orderingService.mappers.PaymentEventMapper
 import ru.sogaz.site.orderingService.properties.RabbitProps
 import ru.sogaz.site.orderingService.service.BuildBatchConsumerService
 import ru.sogaz.site.orderingService.service.OrderBatchConsumer
@@ -21,11 +23,15 @@ class ServiceConfig {
         orderDao: OrderDao,
         subOrderDao: SubOrderDao,
         props: RabbitProps,
+        orderMapper: OrderMapper,
+        paymentEventMapper: PaymentEventMapper,
     ): BuildBatchConsumerService =
         BuildBatchConsumerServiceImpl(
             orderDao = orderDao,
             subOrderDao = subOrderDao,
             props = props,
+            orderMapper = orderMapper,
+            paymentEventMapper = paymentEventMapper,
         )
 
     @Bean

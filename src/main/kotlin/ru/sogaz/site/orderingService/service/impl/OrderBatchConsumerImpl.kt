@@ -20,7 +20,6 @@ class OrderBatchConsumerImpl(
             "Обработка записи из очереди успешно произведена: routingKey=%s, author=%s, eventTime=%s"
         private const val BATCH_SUMMARY =
             "Итог обработки пачки: количество=%d, длительность(мс)=%d"
-        private const val ACK_SUCCESSFUL = "ACK отправлен для deliveryTag=%d\", size=%d"
     }
 
     private val logger = loggerFor(javaClass)
@@ -33,53 +32,47 @@ class OrderBatchConsumerImpl(
         messages: List<Message>,
         channel: Channel,
     ) {
-        val deliveryTag = messages.last().messageProperties.deliveryTag
-
-        // конвертим в DTO
-        val payloads =
-            messages.map {
-                messageConverter.fromMessage(it) as OrderPayloadDto
-            }
         val started = System.nanoTime()
+        val payloads = mutableListOf<Pair<Long, OrderPayloadDto>>() // tag + dto
+
+        // парсим сообщения
+        messages.forEach { msg ->
+            val tag = msg.messageProperties.deliveryTag
+            try {
+                val dto = messageConverter.fromMessage(msg) as OrderPayloadDto
+                payloads += tag to dto
+            } catch (ex: Exception) {
+                logger.error("Ошибка парсинга сообщения: ${msg.messageProperties.messageId}")
+                // отправляем битое сообщение в DLQ
+                channel.basicReject(tag, false)
+            }
+        }
+
+        if (payloads.isEmpty()) {
+            logger.warn("Нет валидных сообщений для обработки в батче")
+            return
+        }
 
         try {
-            // 1) запись в БД + сбор событий (транзакция внутри BuildBatchConsumerServiceImpl)
-            val events = buildBatchConsumerService.upsertBatch(payloads)
+            // 1) запись в БД + сбор событий
+            val events = buildBatchConsumerService.upsertBatch(payloads.map { it.second })
 
-            // 2) публикация и логирование — уже после успешного коммита
+            // 2) публикация событий
             paymentProducer.sendBatch(events)
 
-            val metaByOrderId =
-                payloads.associateBy(
-                    keySelector = { it.orderId },
-                    valueTransform = { it.metaInfo.lastOrNull() },
-                )
-
-            events.forEach { ev ->
-                val meta = metaByOrderId[ev.data.orderId.toString()]
-                logger.info(
-                    SUCCESSFUL_QUEUE_PROCESSING.format(
-                        meta?.routingKey,
-                        meta?.author,
-                        meta?.eventTimeIso,
-                    ),
-                )
+            // 3) ack только за валидные сообщения
+            payloads.forEach { (tag, _) ->
+                channel.basicAck(tag, false)
             }
 
             val tookMs = (System.nanoTime() - started) / 1_000_000
             logger.info(BATCH_SUMMARY.format(payloads.size, tookMs))
-
-            //  подтверждаем пачку
-            channel.basicAck(deliveryTag, true)
-            logger.debug(ACK_SUCCESSFUL.format(deliveryTag, payloads.size))
         } catch (ex: Exception) {
-            logger.error("Ошибка при обработке пачки: ${ex.message}")
-
-            //  возвращаем пачку в очередь
-            channel.basicNack(deliveryTag, true, true)
-            logger.debug("N_ACK отправлен для deliveryTag=$deliveryTag, size=${payloads.size}")
-
-            throw ex
+            logger.error("Ошибка при обработке валидных сообщений батча: ${ex.message}")
+            // если ошибка на уровне БД/бизнес-логики → отправляем валидные в DLQ тоже
+            payloads.forEach { (tag, _) ->
+                channel.basicReject(tag, false)
+            }
         }
     }
 }
