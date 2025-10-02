@@ -1,11 +1,12 @@
 package ru.sogaz.site.orderingService.dto
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.DecimalMin
 import jakarta.validation.constraints.NotNull
 import java.math.BigDecimal
 
 data class SubOrderDto(
-    //    @field:JsonProperty("premiumAmount")
+    @field:JsonProperty("premiumAmount")
     @field:NotNull
     @field:DecimalMin("0.01")
     val premiumAmountDto: BigDecimal, // сумма премии (обязательно)
