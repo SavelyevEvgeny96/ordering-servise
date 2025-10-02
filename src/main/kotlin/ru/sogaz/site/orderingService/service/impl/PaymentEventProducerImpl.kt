@@ -46,8 +46,8 @@ class PaymentEventProducerImpl(
         }
     }
 
-    override fun sendBatch(events: List<PaymentCreatedEvent>?): PublishResult {
-        if (events.isNullOrEmpty()) {
+    override fun sendBatch(events: List<PaymentCreatedEvent>): PublishResult {
+        if (events.isEmpty()) {
             return PublishResult(emptySet(), emptyMap(), emptySet())
         }
 

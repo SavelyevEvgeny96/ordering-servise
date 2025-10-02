@@ -1,5 +1,6 @@
 package ru.sogaz.site.orderingService.service.impl
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.transaction.annotation.Transactional
 import ru.sogaz.site.orderingService.dao.OrderDao
 import ru.sogaz.site.orderingService.dao.SubOrderDao
@@ -9,6 +10,8 @@ import ru.sogaz.site.orderingService.dto.PaymentData
 import ru.sogaz.site.orderingService.entity.OrderEntity
 import ru.sogaz.site.orderingService.entity.SubOrderEntity
 import ru.sogaz.site.orderingService.loggerFor
+import ru.sogaz.site.orderingService.mapper.OrderMapper
+import ru.sogaz.site.orderingService.mappers.PaymentEventMapper
 import ru.sogaz.site.orderingService.properties.RabbitProps
 import ru.sogaz.site.orderingService.service.BuildBatchConsumerService
 import java.math.BigDecimal
@@ -22,6 +25,8 @@ open class BuildBatchConsumerServiceImpl(
     private val orderDao: OrderDao,
     private val subOrderDao: SubOrderDao,
     private val props: RabbitProps,
+    private val orderMapper: OrderMapper,
+    private val paymentEventMapper: PaymentEventMapper
 ) : BuildBatchConsumerService {
     companion object {
         const val BATCH_FAILED = "Сбой обработки пачки на orderId=%s, причина=%s"
@@ -41,7 +46,7 @@ open class BuildBatchConsumerServiceImpl(
             if (orders.isNotEmpty()) orderDao.upsertOrders(orders)
             if (subs.isNotEmpty()) subOrderDao.upsertSubOrders(subs)
 
-            return buildEvents(orders, nowIso)
+            return paymentEventMapper.toPaymentEvents(orders, nowIso, props.routingKeyPayment)
         } catch (ex: Exception) {
             logger.error(BATCH_FAILED.format(currentOrderId, ex.message))
             throw ex // откат транзакции и отсутствие ACK
@@ -49,53 +54,25 @@ open class BuildBatchConsumerServiceImpl(
     }
 
     private fun prepareEntities(batch: List<OrderPayloadDto>): Pair<List<OrderEntity>, List<SubOrderEntity>> {
-        val seenOrderIds = HashSet<UUID>()
+        val seenOrderIds = mutableSetOf<UUID>()
         val orders = mutableListOf<OrderEntity>()
         val subs = mutableListOf<SubOrderEntity>()
 
-        for (dto in batch) {
+        batch.forEach { dto ->
             val id = UUID.fromString(dto.orderId)
 
             if (!seenOrderIds.add(id)) {
                 logger.info(DUPLICATE.format(id))
-                continue
+                return@forEach
             }
 
-            val order =
-                OrderEntity().apply {
-                    orderId = id
-                    recipientEmail = dto.recipientEmail ?: ""
-                    recipientPhone = dto.recipientPhone ?: ""
-                    recipientUserGdId = dto.recipientGdId
-                    keyCard = dto.keyCard
-                    saveCard = dto.saveCard
-                    recurrent = dto.recurrent
-                    paymentEndDate = dto.orderEndDate
-                    recipientUserId = dto.recipientUserId
-                    premiumAmount =
-                        dto.subOrders
-                            .map { it.premiumAmount }
-                            .fold(BigDecimal.ZERO, BigDecimal::add)
-                            .takeIf { it > BigDecimal.ZERO }
-                    createDate = Instant.now()
-                }
+            val order = orderMapper.toOrderEntity(dto)
             orders += order
 
-            dto.subOrders.forEach { s ->
-                subs +=
-                    SubOrderEntity(
-                        orderEntity = order,
-                        policyId = s.policyId,
-                        policyNumber = s.policyNumber,
-                        contractId = s.contractId,
-                        contractNumber = s.contractNumber,
-                        insuranceProgram = s.insuranceProgram,
-                        typeInsurance = s.typeInsurance,
-                        premiumAmount = s.premiumAmount,
-                        managerEmail = dto.managerEmail,
-                    )
-            }
+            val subOrders = orderMapper.toSubOrderEntities(dto.subOrders, order, dto.managerEmail)
+            subs += subOrders
         }
+
         return orders to subs
     }
 
