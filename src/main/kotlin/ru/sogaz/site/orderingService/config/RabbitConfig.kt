@@ -1,7 +1,12 @@
 package ru.sogaz.site.orderingService.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.springframework.amqp.core.*
+import org.springframework.amqp.core.AcknowledgeMode
+import org.springframework.amqp.core.Binding
+import org.springframework.amqp.core.BindingBuilder
+import org.springframework.amqp.core.Queue
+import org.springframework.amqp.core.QueueBuilder
+import org.springframework.amqp.core.TopicExchange
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory
 import org.springframework.amqp.rabbit.connection.ConnectionFactory
 import org.springframework.amqp.rabbit.core.RabbitTemplate
@@ -25,7 +30,8 @@ class RabbitConfig(
     // Основная очередь заказов с DLQ
     @Bean(name = ["ordersQueue"])
     fun ordersQueue(): Queue =
-        QueueBuilder.durable(props.queueOrder)
+        QueueBuilder
+            .durable(props.queueOrder)
             .withArgument("x-dead-letter-exchange", "")
             .withArgument("x-dead-letter-routing-key", "${props.queueOrder}.dlq")
             .build()
@@ -34,7 +40,7 @@ class RabbitConfig(
     fun ordersDlq(): Queue = QueueBuilder.durable("${props.queueOrder}.dlq").build()
 
     @Bean(name = ["paymentsQueue"])
-    fun paymentsQueue(): QueueBuilder? = QueueBuilder.durable(props.queuePayment)
+    fun paymentsQueue(): Queue = QueueBuilder.durable(props.queuePayment).build()
 
     @Bean
     fun ordersBinding(
@@ -49,8 +55,7 @@ class RabbitConfig(
     ): Binding = BindingBuilder.bind(queue).to(exchange).with(props.routingKeyPayment)
 
     @Bean
-    fun jacksonMessageConverter(objectMapper: ObjectMapper): MessageConverter =
-        Jackson2JsonMessageConverter(objectMapper)
+    fun jacksonMessageConverter(objectMapper: ObjectMapper): MessageConverter = Jackson2JsonMessageConverter(objectMapper)
 
     @Bean
     fun rabbitTemplate(messageConverter: MessageConverter): RabbitTemplate =
