@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Configuration
 import ru.sogaz.site.orderingService.loggerFor
 import ru.sogaz.site.orderingService.properties.RabbitListenerProps
 import ru.sogaz.site.orderingService.properties.RabbitProps
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 @Configuration
@@ -26,18 +26,25 @@ class RabbitConfig(
     private val connectionFactory: ConnectionFactory,
     private val props: RabbitProps,
     private val propsListener: RabbitListenerProps,
-
 ) {
     companion object {
         private const val CONFIRMED_LOG = " Сообщение подтверждено брокером: orderId=%s"
         private const val N_ACK_LOG = " Сообщение отклонено брокером: orderId=%s, причина=%s"
         private const val RETURNED_LOG = " Сообщение возвращено брокером: %s, reply=%s"
     }
+
     private val logger = loggerFor(javaClass)
     private val confirmed = ConcurrentHashMap<UUID, Boolean>()
     private val errors = ConcurrentHashMap<UUID, String?>()
+
     @Bean
-    fun rabbitTemplate(template: RabbitTemplate): RabbitTemplate {
+    fun rabbitTemplate(
+        connectionFactory: ConnectionFactory,
+        messageConverter: MessageConverter,
+    ): RabbitTemplate {
+        val template = RabbitTemplate(connectionFactory)
+        template.messageConverter = messageConverter
+
         template.setConfirmCallback { correlation, ack, cause ->
             val id = correlation?.id ?: return@setConfirmCallback
             val orderId = UUID.fromString(id)
@@ -52,12 +59,12 @@ class RabbitConfig(
         }
 
         template.setReturnsCallback { returned ->
-            logger.error(RETURNED_LOG
-                .format(returned.message, returned.replyText))
+            logger.error(RETURNED_LOG.format(returned.message, returned.replyText))
         }
 
         return template
     }
+
     @Bean
     fun confirmedMap(): ConcurrentHashMap<UUID, Boolean> = confirmed
 
@@ -96,12 +103,6 @@ class RabbitConfig(
 
     @Bean
     fun jacksonMessageConverter(objectMapper: ObjectMapper): MessageConverter = Jackson2JsonMessageConverter(objectMapper)
-
-    @Bean
-    fun rabbitTemplate(messageConverter: MessageConverter): RabbitTemplate =
-        RabbitTemplate(connectionFactory).apply {
-            this.messageConverter = messageConverter
-        }
 
     @Bean("batchContainerFactory")
     fun batchContainerFactory(messageConverter: MessageConverter): SimpleRabbitListenerContainerFactory =

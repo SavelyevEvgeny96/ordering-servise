@@ -5,7 +5,6 @@ import ru.sogaz.site.orderingService.dao.OrderDao
 import ru.sogaz.site.orderingService.dao.SubOrderDao
 import ru.sogaz.site.orderingService.dto.OrderPayloadDto
 import ru.sogaz.site.orderingService.dto.PaymentCreatedEvent
-import ru.sogaz.site.orderingService.dto.PaymentData
 import ru.sogaz.site.orderingService.entity.OrderEntity
 import ru.sogaz.site.orderingService.entity.SubOrderEntity
 import ru.sogaz.site.orderingService.loggerFor
@@ -47,8 +46,7 @@ open class BuildBatchConsumerServiceImpl(
     private fun mapToPaymentEvents(
         orders: List<OrderEntity>,
         nowIso: String
-    ): List<PaymentCreatedEvent> =
-        orders.map { paymentEventMapper.toPaymentEvent(it, nowIso, props.routingKeyPayment) }
+    ): List<PaymentCreatedEvent> = orders.map { paymentEventMapper.toPaymentEvent(it, nowIso, props.routingKeyPayment) }
 
     private fun prepareEntities(batch: List<OrderPayloadDto>): Pair<List<OrderEntity>, List<SubOrderEntity>> {
         val seenOrderIds = mutableSetOf<UUID>()

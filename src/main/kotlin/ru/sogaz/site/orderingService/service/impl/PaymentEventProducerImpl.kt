@@ -13,10 +13,7 @@ import java.util.concurrent.ConcurrentHashMap
 class PaymentEventProducerImpl(
     private val rabbit: RabbitTemplate,
     private val props: RabbitProps,
-    private val confirmed: ConcurrentHashMap<UUID, Boolean>,
-    private val errors: ConcurrentHashMap<UUID, String?>,
 ) : PaymentEventProducer {
-
     companion object {
         private const val NO_CONFIRM_LOG = "Нет подтверждения на данный момент: orderId=%s"
         private const val EMPTY_BATCH_LOG = "Пустая пачка событий — отправка пропущена"
@@ -32,7 +29,8 @@ class PaymentEventProducerImpl(
             logger.debug(EMPTY_BATCH_LOG)
             return PublishResult(emptySet(), emptyMap(), emptySet())
         }
-
+        val errors = ConcurrentHashMap<UUID, String?>()
+        val confirmed = ConcurrentHashMap<UUID, Boolean>()
         val acked = mutableSetOf<UUID>()
         val nAcked = mutableMapOf<UUID, String?>()
         val unconfirmed = mutableSetOf<UUID>()
@@ -50,7 +48,7 @@ class PaymentEventProducerImpl(
                         msg.messageProperties.correlationId = orderId.toString()
                         msg
                     },
-                    correlationData
+                    correlationData,
                 )
                 logger.debug(PUBLISHED_LOG.format(orderId, event.eventType))
             } catch (ex: Exception) {
