@@ -3,6 +3,7 @@ package ru.sogaz.site.orderingService.entity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
+import jakarta.persistence.FetchType
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
@@ -16,7 +17,7 @@ data class SubOrderEntity(
     @Id
     @Column(name = "sub_order_id", columnDefinition = "uuid")
     var id: UUID? = null,
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", referencedColumnName = "order_id", nullable = false)
     var orderEntity: OrderEntity? = null,
     @Column(name = "operation_id")
