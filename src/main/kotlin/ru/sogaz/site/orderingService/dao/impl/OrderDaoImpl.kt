@@ -2,9 +2,15 @@ package ru.sogaz.site.orderingService.dao.impl
 
 import org.springframework.jdbc.core.JdbcTemplate
 import ru.sogaz.site.orderingService.dao.OrderDao
+import ru.sogaz.site.orderingService.dao.model.OrderSummary
+import ru.sogaz.site.orderingService.dao.model.OrdersUserContactCondition
+import ru.sogaz.site.orderingService.dao.model.OrdersUserSearchFilter
+import ru.sogaz.site.orderingService.dao.model.OrdersUserSearchType
 import ru.sogaz.site.orderingService.entity.OrderEntity
+import ru.sogaz.site.orderingService.enums.OrderStatusesEnum
 import ru.sogaz.site.orderingService.loggerFor
 import java.sql.Timestamp
+import java.util.UUID
 
 class OrderDaoImpl(
     private val jdbcTemplate: JdbcTemplate,
@@ -57,5 +63,70 @@ class OrderDaoImpl(
 
         logger.info(LOG_EXECUTE.format(orders.size))
         logger.info(LOG_DONE.format(orders.size))
+    }
+
+    override fun findOrdersBySearch(filter: OrdersUserSearchFilter): List<OrderSummary> {
+        val (whereClause, params) = buildWhereClause(filter)
+
+        val sql =
+            """
+            SELECT o.order_id, o.premium_amount, o.status
+            FROM orders o
+            WHERE $whereClause
+            ORDER BY o.create_date DESC
+            """.trimIndent()
+
+        return jdbcTemplate.query(sql, params.toTypedArray()) { rs, _ ->
+            OrderSummary(
+                orderId = rs.getObject("order_id", UUID::class.java),
+                premiumAmount = rs.getBigDecimal("premium_amount"),
+                status = rs.getString("status")
+                    ?.let { OrderStatusesEnum.valueOf(it) }
+                    ?: OrderStatusesEnum.NEW,
+            )
+        }
+    }
+
+    private fun buildWhereClause(filter: OrdersUserSearchFilter): Pair<String, List<Any?>> {
+        return when (filter.type) {
+            OrdersUserSearchType.USER_ID ->
+                "o.recipient_user_id = ?" to listOf(filter.userId)
+
+            OrdersUserSearchType.GD_ID ->
+                "o.recipient_user_gd_id = ?" to listOf(filter.gdId)
+
+            OrdersUserSearchType.EMAIL_OR_PHONE -> buildEmailPhoneClause(filter)
+        }
+    }
+
+    private fun buildEmailPhoneClause(filter: OrdersUserSearchFilter): Pair<String, List<Any?>> {
+        return when (filter.contactCondition) {
+            OrdersUserContactCondition.AND ->
+                "o.recipient_email = ? AND o.recipient_phone = ?" to listOf(filter.email, filter.phone)
+
+            OrdersUserContactCondition.OR -> {
+                val conditions = mutableListOf<String>()
+                val params = mutableListOf<Any?>()
+
+                filter.email?.let {
+                    conditions += "o.recipient_email = ?"
+                    params += it
+                }
+
+                filter.phone?.let {
+                    conditions += "o.recipient_phone = ?"
+                    params += it
+                }
+
+                if (conditions.isEmpty()) {
+                    "(1 = 0)" to emptyList()
+                } else {
+                    "(${conditions.joinToString(" OR ")})" to params
+                }
+            }
+
+            null ->
+                "(1 = 0)" to emptyList()
+        }
     }
 }
