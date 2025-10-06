@@ -25,29 +25,30 @@ open class BuildBatchConsumerServiceImpl(
     private val paymentEventMapper: PaymentEventMapper,
 ) : BuildBatchConsumerService {
     companion object {
-        const val BATCH_FAILED = "Сбой обработки пачки на orderId=%s, причина=%s"
         const val DUPLICATE = "Дубликат orderId в пачке, пропускаем: %s"
     }
 
     private val logger = loggerFor(javaClass)
 
-    @Transactional(rollbackFor = [Exception::class])
     override fun upsertBatch(batch: List<OrderPayloadDto>): List<PaymentCreatedEvent> {
         val nowIso = OffsetDateTime.now(ZoneOffset.UTC).toString()
-        val currentOrderId = ""
-
-        try {
-            val (orders, subs) = prepareEntities(batch)
-
-            if (orders.isNotEmpty()) orderDao.upsertOrders(orders)
-            if (subs.isNotEmpty()) subOrderDao.upsertSubOrders(subs)
-
-            return orders.map { paymentEventMapper.toPaymentEvent(it, nowIso, props.routingKeyPayment) }
-        } catch (ex: Exception) {
-            logger.error(BATCH_FAILED.format(currentOrderId, ex.message))
-            throw ex // откат транзакции и отсутствие ACK
-        }
+        val orders = saveBatchTransactional(batch)
+        return mapToPaymentEvents(orders, nowIso)
     }
+
+    @Transactional(rollbackFor = [Exception::class])
+    protected fun saveBatchTransactional(batch: List<OrderPayloadDto>): List<OrderEntity> {
+        val (orders, subs) = prepareEntities(batch)
+        if (orders.isNotEmpty()) orderDao.upsertOrders(orders)
+        if (subs.isNotEmpty()) subOrderDao.upsertSubOrders(subs)
+        return orders
+    }
+
+    private fun mapToPaymentEvents(
+        orders: List<OrderEntity>,
+        nowIso: String
+    ): List<PaymentCreatedEvent> =
+        orders.map { paymentEventMapper.toPaymentEvent(it, nowIso, props.routingKeyPayment) }
 
     private fun prepareEntities(batch: List<OrderPayloadDto>): Pair<List<OrderEntity>, List<SubOrderEntity>> {
         val seenOrderIds = mutableSetOf<UUID>()
@@ -71,27 +72,4 @@ open class BuildBatchConsumerServiceImpl(
 
         return orders to subs
     }
-
-    private fun buildEvents(
-        orders: List<OrderEntity>,
-        nowIso: String,
-    ): List<PaymentCreatedEvent> =
-        orders.map { ord ->
-            PaymentCreatedEvent(
-                timestamp = nowIso,
-                eventType = props.routingKeyPayment,
-                data =
-                    PaymentData(
-                        recurrent = ord.recurrent ?: false,
-                        orderId = ord.orderId!!,
-                        premiumAmount = ord.premiumAmount,
-                        saveCard = ord.saveCard,
-                        keyCard = ord.keyCard,
-                        recipientEmail = ord.recipientEmail,
-                        recipientPhone = ord.recipientPhone,
-                        dateCreate = ord.updateDate?.atOffset(ZoneOffset.UTC)?.toString(),
-                        dateEnd = ord.paymentEndDate?.atOffset(ZoneOffset.UTC)?.toString(),
-                    ),
-            )
-        }
 }

@@ -13,75 +13,62 @@ import java.util.concurrent.ConcurrentHashMap
 class PaymentEventProducerImpl(
     private val rabbit: RabbitTemplate,
     private val props: RabbitProps,
+    private val confirmed: ConcurrentHashMap<UUID, Boolean>,
+    private val errors: ConcurrentHashMap<UUID, String?>,
 ) : PaymentEventProducer {
+
     companion object {
-        private const val CONFIRMED_LOG = " Сообщение подтверждено брокером: orderId=%s"
-        private const val N_ACK_LOG = " Сообщение отклонено брокером: orderId=%s, причина=%s"
-        private const val RETURNED_LOG = " Сообщение возвращено брокером: %s, reply=%s"
-        private const val PUBLISHED_LOG = " Отправлено событие: orderId=%s, routingKey=%s"
-        private const val NO_CONFIRM_LOG = " Нет подтверждения на данный момент: orderId=%s"
+        private const val NO_CONFIRM_LOG = "Нет подтверждения на данный момент: orderId=%s"
+        private const val EMPTY_BATCH_LOG = "Пустая пачка событий — отправка пропущена"
+        private const val PUBLISHED_LOG = "Отправлено сообщение для orderId=%s, eventType=%s"
+        private const val PUBLISH_ERROR_LOG = "Ошибка при отправке сообщения orderId=%s: %s"
+        private const val BATCH_RESULT_LOG = "Результат отправки: подтверждено=%d, ошибок=%d, неподтверждено=%d"
     }
 
     private val logger = loggerFor(javaClass)
 
-    private val confirmed = ConcurrentHashMap<UUID, Boolean>()
-    private val errors = ConcurrentHashMap<UUID, String?>()
-
-    init {
-        rabbit.setConfirmCallback { correlation, ack, cause ->
-            val id = correlation?.id ?: return@setConfirmCallback
-            val orderId = UUID.fromString(id)
-
-            if (ack) {
-                confirmed[orderId] = true
-                logger.debug(CONFIRMED_LOG.format(orderId))
-            } else {
-                errors[orderId] = cause
-                logger.error(N_ACK_LOG.format(orderId, cause))
-            }
-        }
-
-        rabbit.setReturnsCallback { returned ->
-            logger.error(RETURNED_LOG.format(returned.message, returned.replyText))
-        }
-    }
-
     override fun sendBatch(events: List<PaymentCreatedEvent>): PublishResult {
         if (events.isEmpty()) {
+            logger.debug(EMPTY_BATCH_LOG)
             return PublishResult(emptySet(), emptyMap(), emptySet())
         }
 
         val acked = mutableSetOf<UUID>()
         val nAcked = mutableMapOf<UUID, String?>()
+        val unconfirmed = mutableSetOf<UUID>()
 
-        events.forEach { ev ->
-            val orderId = ev.data.orderId
-            val cd = CorrelationData(orderId.toString())
+        events.forEach { event ->
+            val orderId = event.data.orderId
+            val correlationData = CorrelationData(orderId.toString())
 
-            rabbit.convertAndSend(
-                props.exchange,
-                ev.eventType,
-                ev,
-                { msg ->
-                    msg.messageProperties.correlationId = orderId.toString()
-                    msg
-                },
-                cd,
-            )
-            logger.debug(PUBLISHED_LOG.format(orderId, ev.eventType))
-        }
+            try {
+                rabbit.convertAndSend(
+                    props.exchange,
+                    event.eventType,
+                    event,
+                    { msg ->
+                        msg.messageProperties.correlationId = orderId.toString()
+                        msg
+                    },
+                    correlationData
+                )
+                logger.debug(PUBLISHED_LOG.format(orderId, event.eventType))
+            } catch (ex: Exception) {
+                logger.error(PUBLISH_ERROR_LOG.format(orderId, ex.message))
+                nAcked[orderId] = ex.message
+            }
 
-        events.forEach { ev ->
-            val orderId = ev.data.orderId
-            if (confirmed.remove(orderId) == true) {
-                acked += orderId
-            } else if (errors.containsKey(orderId)) {
-                nAcked[orderId] = errors.remove(orderId)
-            } else {
-                logger.warn(NO_CONFIRM_LOG.format(orderId))
+            when {
+                confirmed.remove(orderId) == true -> acked += orderId
+                errors.containsKey(orderId) -> nAcked[orderId] = errors.remove(orderId)
+                else -> {
+                    logger.warn(NO_CONFIRM_LOG.format(orderId))
+                    unconfirmed += orderId
+                }
             }
         }
 
-        return PublishResult(acked, nAcked, emptySet())
+        logger.info(BATCH_RESULT_LOG.format(acked.size, nAcked.size, unconfirmed.size))
+        return PublishResult(acked, nAcked, unconfirmed)
     }
 }

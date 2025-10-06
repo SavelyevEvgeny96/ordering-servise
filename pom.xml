@@ -59,6 +59,37 @@
 			<version>1.5.5.Final</version>
 			<scope>provided</scope>
 		</dependency>
+		<!-- JUnit 5 -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>5.10.0</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Mockito Core -->
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>5.12.0</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!--Mockito-Kotlin (для whenever, eq, any и пр.) -->
+		<dependency>
+			<groupId>org.mockito.kotlin</groupId>
+			<artifactId>mockito-kotlin</artifactId>
+			<version>5.2.1</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Для Kotlin тестов -->
+		<dependency>
+			<groupId>org.jetbrains.kotlin</groupId>
+			<artifactId>kotlin-test</artifactId>
+			<version>1.9.25</version>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.jetbrains.kotlin</groupId>
 			<artifactId>kotlin-reflect</artifactId>
@@ -127,9 +158,7 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-
 	<build>
-
 		<sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
 		<testSourceDirectory>${project.basedir}/src/test</testSourceDirectory>
 		<finalName>${project.artifactId}</finalName>
@@ -142,6 +171,7 @@
 		</resources>
 
 		<plugins>
+
 			<!-- Spring Boot -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>

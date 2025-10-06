@@ -15,15 +15,55 @@ import org.springframework.amqp.support.converter.MessageConverter
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import ru.sogaz.site.orderingService.loggerFor
 import ru.sogaz.site.orderingService.properties.RabbitListenerProps
 import ru.sogaz.site.orderingService.properties.RabbitProps
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 @Configuration
 class RabbitConfig(
     private val connectionFactory: ConnectionFactory,
     private val props: RabbitProps,
     private val propsListener: RabbitListenerProps,
+
 ) {
+    companion object {
+        private const val CONFIRMED_LOG = " Сообщение подтверждено брокером: orderId=%s"
+        private const val N_ACK_LOG = " Сообщение отклонено брокером: orderId=%s, причина=%s"
+        private const val RETURNED_LOG = " Сообщение возвращено брокером: %s, reply=%s"
+    }
+    private val logger = loggerFor(javaClass)
+    private val confirmed = ConcurrentHashMap<UUID, Boolean>()
+    private val errors = ConcurrentHashMap<UUID, String?>()
+    @Bean
+    fun rabbitTemplate(template: RabbitTemplate): RabbitTemplate {
+        template.setConfirmCallback { correlation, ack, cause ->
+            val id = correlation?.id ?: return@setConfirmCallback
+            val orderId = UUID.fromString(id)
+
+            if (ack) {
+                confirmed[orderId] = true
+                logger.debug(CONFIRMED_LOG.format(orderId))
+            } else {
+                errors[orderId] = cause
+                logger.error(N_ACK_LOG.format(orderId, cause))
+            }
+        }
+
+        template.setReturnsCallback { returned ->
+            logger.error(RETURNED_LOG
+                .format(returned.message, returned.replyText))
+        }
+
+        return template
+    }
+    @Bean
+    fun confirmedMap(): ConcurrentHashMap<UUID, Boolean> = confirmed
+
+    @Bean
+    fun errorsMap(): ConcurrentHashMap<UUID, String?> = errors
+
     @Bean
     fun ordersExchange(): TopicExchange = TopicExchange(props.exchange, true, false)
 
