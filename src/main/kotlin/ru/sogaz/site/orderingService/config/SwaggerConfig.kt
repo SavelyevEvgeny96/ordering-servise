@@ -12,7 +12,7 @@ private const val SECURITY_SCHEME_NAME = "bearerAuth"
 private const val BEARER_FORMAT = "JWT"
 
 @Configuration
-open class SwaggerConfig{
+open class SwaggerConfig {
     @Bean
     open fun customOpenAPI(): OpenAPI =
         OpenAPI().apply {

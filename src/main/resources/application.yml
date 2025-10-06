@@ -6,21 +6,53 @@ spring:
     active: ${ENVIRONMENT:local}
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/ordering}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ordering?reWriteBatchedInserts=true}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:123456}
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate.jdbc.batch_size: 50
+      hibernate.order_inserts: true
+      hibernate.order_updates: true
+      hibernate.jdbc.batch_versioned_data: true
   liquibase:
     change-log: db.changelog/db.changelog-master.yaml
     enabled: true
   output:
     ansi:
       enabled: ALWAYS
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: dev
+    password: dev
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: auto
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: UTC
 server:
   port: ${SERVER_PORT:8080}
   use-forward-headers: true
   main.allow-bean-definition-overriding: true
 
 app:
+  rabbit:
+    exchange: ${ORDERS_EXCHANGE:orders.exchange}
+    queue-order: ${ORDER_CREATED_QUEUE:orders.created.queue}
+    queue-order-dlq: ${ORDER_CREATED_QUEUE_DLQ:orders.created.queue.dlq} #DLQ
+    queue-payment: ${PAYMENT_CREATED_QUEUE:payment.created.queue}
+    routing-key-order: ${ROUTING_KEY_ORDERS_CREATED:orders.created}
+    routing-key-payment: ${ROUTING_KEY_PAYMENTS_CREATED:payments.created}
+    listener:
+      batch-size: 100
+      prefetch: 100
+      concurrency: 3
+      max-concurrency: 10
   info:
     application_name: @project.name@
     version: @project.version@
@@ -50,14 +82,22 @@ management:
       enable: true
     readinessState:
       enable: true
-
-
+#local debug
+#logging.level.org.hibernate.engine.jdbc.batch.internal: DEBUG
+#logging.level.org.hibernate.stat: DEBUG
+#spring.jpa.properties.hibernate.generate_statistics: true
 logging:
   level:
     ru:
       sogaz:
         site:
           pattern: ${LOGGING_LEVEL_RU_SOGAZ_ESB:DEBUG}
+#logging:
+#  level:
+#    org.springframework.jdbc: DEBUG
+#    org.springframework.transaction: DEBUG
+#    org.springframework.amqp.rabbit.*: DEBUG
+
 
 logstash:
   host: ${LOG_SERVER_HOST:localhost}

@@ -1,6 +1,6 @@
 
 CREATE TABLE client_systems (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),            -- Автоинкрементируемый ID
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),  -- Автоинкрементируемый ID
     external_system_code VARCHAR(50) UNIQUE , -- Код системы
     external_system_name VARCHAR(255) NOT NULL -- Наименование системы
 );
