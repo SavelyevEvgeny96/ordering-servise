@@ -2,8 +2,10 @@ package ru.sogaz.site.orderingService.dao.impl
 
 import org.springframework.jdbc.core.JdbcTemplate
 import ru.sogaz.site.orderingService.dao.SubOrderDao
+import ru.sogaz.site.orderingService.dao.model.SubOrderSummary
 import ru.sogaz.site.orderingService.entity.SubOrderEntity
 import ru.sogaz.site.orderingService.loggerFor
+import java.util.UUID
 
 class SubOrderDaoImpl(
     private val jdbcTemplate: JdbcTemplate,
@@ -52,5 +54,30 @@ class SubOrderDaoImpl(
 
         logger.info(LOG_EXECUTE.format(subs.size))
         logger.info(LOG_DONE.format(subs.size))
+    }
+
+    override fun findSubOrdersByOrderIds(orderIds: Collection<UUID>): List<SubOrderSummary> {
+        if (orderIds.isEmpty()) {
+            return emptyList()
+        }
+
+        val placeholders = orderIds.joinToString(",") { "?" }
+        val sql =
+            """
+            SELECT order_id, policy_id, policy_number, type_insurance, insurance_program, premium_amount
+            FROM sub_orders
+            WHERE order_id IN ($placeholders)
+            """.trimIndent()
+
+        return jdbcTemplate.query(sql, orderIds.toTypedArray()) { rs, _ ->
+            SubOrderSummary(
+                orderId = rs.getObject("order_id", UUID::class.java),
+                policyId = rs.getString("policy_id"),
+                policyNumber = rs.getString("policy_number"),
+                typeInsurance = rs.getString("type_insurance"),
+                insuranceProgram = rs.getString("insurance_program"),
+                premiumAmount = rs.getBigDecimal("premium_amount"),
+            )
+        }
     }
 }
